@@ -55,11 +55,17 @@ Application tests live in `test/` as `*.test.ts` or `*.test.tsx`.
 They cover TanStack Query cache isolation, browser cache reuse, provider stability,
 and shared queries, plus Zustand provider isolation, state retention, selector
 subscriptions, and missing-provider errors.
+Shared control tests cover native form submission, disabled actions, input labels,
+refs and values, semantic cards, and application provider defaults.
+Catalogue tests cover server retrieval and validation, the inclusive discount
+threshold, global ranking, title-only search across pages, pagination boundaries,
+empty and error states, and mobile navigation controls.
 
 The `@/` alias points to `../Homework.Web` in both Vite and TypeScript.
 Dependencies resolve from the test project's installation. Vite deduplicates
-React, React DOM, Zustand, and TanStack Query so tests and application code use
-the same library instances when both projects have dependencies installed.
+React, React DOM, Next.js, Zustand, TanStack Query, and the existing UI dependencies
+so tests and application code use the same library instances when both projects
+have dependencies installed.
 
 Keep tested library versions aligned with `Homework.Web` when upgrading.
 When testing application code that imports another runtime dependency, add it

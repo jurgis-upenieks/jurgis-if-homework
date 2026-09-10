@@ -10,9 +10,8 @@
 - 1.7. Removing unused code;
 - 1.8. Code MUST be clean, simple, not over-engineered, not over-complicated, not unnecessarily inflated, no boilerplate.
 - 1.9. When property drilling starts to cause unnecessary boilerplate, where using Zustand stores/state-management would reduce that code size, in that case it is STRICTLY FORBIDDEN to use property drilling, and should use (or switch to) Zustand instead. But in cases, when Zustand would cause more code than property drilling (and only in such cases), need to stick with property drilling (but property drilling should be only reserved to those rare cases).
-- 1.10. For API responses, loading/error states, caching, background refresh, mutations and other similar stuff use TanStack Query.
+- 1.10. For managing data retrieval from back-end and external services (API responses, loading/error states, caching, background refresh, mutations and other similar stuff) use TanStack Query.
 - 1.11. Removing code comments from your code changes, and instead the code should be implemented in self-documenting way.
-- 1.12. With the changes there should not be any visual or functional regressions throughout the reusable-components-library sub-project `../emy-frontend-core` and throughout the parent projects `../VKCPODP`, `../VKCPDienestaGramata`,  `../VKCPNotikumaApraksts`. Need to make sure that even in the indirect usages there are no regressions.
 
 ## 2. MUST use TypeScript instead of plain JavaScript:
 - 2.1. For example, specifying `any` for types is not allowed, and is reserved only to very rare cases, where there is really no other more proper alternative.
@@ -22,11 +21,9 @@
 - 3.1. MUST inspect the entire project, before adding or changing code, to identify the already established approach/pattern for what needs to be changed and follow the established approach/pattern. And, if researching for already established approach in the project, you find multiple different approach for implementing the same type of stuff, prioritize the most recently implemented one. It is STRICTLY PROHIBITED to "reinvent the wheel" if in the project or in dependencies there is already a solution available/implemented. And also it is STRICTLY PROHIBITED to keep implementations for multiple similar solutions, where instead they should be consolidated, merged, generalized into one solution, and made configurable for multiple use-cases. And, instead of creating similar multiple solutions, need to upgrade the existing one + configurable/parametrized. It is strictly forbidden to violate this rule.
 - 3.2. MUST NOT mix different approaches across files or components, use what is already established throughout the project.
 
-## 4. MUST separate code in 2 parts, where first half as compact configuration-only/parameterized-only instantiation (configuring/paremterizing the instance only for the business-specific use-case) should go into parent projects `../VKCP*`, and other half as reusable and generic and business-usecase-non-specific and universal and configurable/parameterized implementation should go into reusable components library `../emy-frontend-core`:
-- 4.1. MUST NOT put implementation in the parent projects `../VKCP*`. Instead, the actual implementation MUST go only in the reusable stuff sub-project `../emy-frontend-core` in the appropriate exising component there, or if there is no existing component there to upgrade, only in that case create a new one there in a reusable and generic and business-usecase-non-specific and universal and configurable/parameterized way.
-- 4.2. In the parent projects `../VKCP*` MUST add only compact configuration/arguments with the specific business case specifics or configuration to override defaults (and only if the defaults should be overridden), and pass that business-case-specific configuration to the sub-project `../emy-frontend-core` component.
-- 4.3. MUST NOT put anything business-case-specific in the sub-project `../emy-frontend-core`. Instead the business-usecase-specific stuff MUST be put in the parent projects `../VKCP*` and passed in form of a configuration to the sub-project `../emy-frontend-core` reusable and generic and business-usecase-non-specific and universal and configurable components.
-- 4.4. The only allowed exception, where the business-usecase-specific stuff is allowed to be put in the emy-frontend-core, is in the /src/shared-use-cases/, where it is allowed to put the business-usecase-specific stuff in form of plugin composables. But direct referring to, calling, and instantiation of those is allowed only in the parent projects, not directly from emy-frontend-core (can be only for example specified by parent project for the emy-frontend-core components in their api config, indirectly). If any of that kind of stuff is used only by a single parent project (not really shared between at least 2 parent projects), then it is not allowed to put it in the emy-frontend-core shared-use-cases. In shared-use-cases it is allowed to have only stuff that is really used by multiple parent projects or when explicitly asked to do so in a prompt.
+## 4. MUST separate code in 2 parts, where first half as compact configuration-only/parameterized-only instantiation (configuring/paremterizing the instance only for the business-specific use-case) should go into the project business-specific parent components (everything that is not `Homework.Web/generic-configurables/`), and other half as reusable and generic and business-usecase-non-specific and universal and configurable/parameterized implementation should go into the reusable stuff module `Homework.Web/generic-configurables/`:
+- 4.1. MUST NOT put actual implementation in places other than `Homework.Web/generic-configurables/`. Instead, the actual implementation MUST go only in the reusable stuff module `Homework.Web/generic-configurables/` in the appropriate exising component there, or if there is no existing component there to upgrade, only in that case create a new one there in a reusable and generic and business-usecase-non-specific and universal and configurable/parameterized way.
+- 4.2. Elsewhere that is not `Homework.Web/generic-configurables/`, MUST add only compact configuration/arguments with the specific business case specifics or configuration to override defaults (and only if the defaults should be overridden), and pass that business-case-specific configuration to the module `Homework.Web/generic-configurables/` component.
 
 ## 5. API interface/contract (including its full structure) of components, composables, services, modules, functions:
 - 5.1. MUST NOT in any way create a dirty, fragmented, human-unfriendly, boilerplated, bloated API interface/contract (including its full structure) of components, composables, services, modules, functions.
@@ -44,6 +41,7 @@
 - 7.3. In styling code for spacing between elements MUST NOT use paddings and margins. Instead, MUST use `gap` spacings approach.
 - 7.4. In styling code MUST NOT use direct hard-coded color codes, sizes, fonts, and other hardcoded stuff, but instead MUST use theme variables, preferably picking from the already available ones.
 - 7.5. In styling code MUST NOT use direct css style attributes, but instead MUST use `@apply` approach.
+- 7.6. Layout should be 100% responsive - looking good on any size and aspect ratio screens and touch screens.
 
 ## 8. Templates:
 - 8.1. MUST NOT make a div-soup, div-soup is not allowed.
@@ -59,17 +57,8 @@
 - 9.5. There MUST NOT be more than 1 empty lines sequentially.
 
 ## 10. Structuring of component file code:
-- 10.1. MUST have the parts of component file code in the following exact order (and these sections MUST be separated by 1 empty line):
-```text
-- 1. <template> section;
-- 2. <script ...> section, and in that <script> section order of inner parts should be:
-  - 2.1. imports;
-  - 2.2. configuration/arguments structured objects, arrays and simple values for passing to template items (for child components);
-  - 2.3. `defineExpose`, `defineEmits`, `defineProps`, `withDefaults` and other similar/same-family statement/s;
-  - 2.4. functions;
-  - 2.5. internal configuration/arguments structured objects, arrays and simple values for using internally in the component;
-```
-- 10.2. MUST saparate out internal and public types of a component into separete file `types.ts`, which should be located next to the component file. MUST NOT put types of a component into the component file itself. In the `types.ts` file first there should be public types, then 2 empty lines, and then private types. Only public types should be exported for external usage. Internal types should be made internally available only.
+- 10.1. MUST saparate out internal and public types of a component into separete file `types.ts`, which should be located next to the component file. MUST NOT put types of a component into the component file itself. In the `types.ts` file first there should be public types, then 2 empty lines, and then private types. Only public types should be exported for external usage. Internal types should be made internally available only.
+- For stuff, which is fitting to go into the server-side, it SHOULD BE put in the server-side code.
 
 ## 11. Minimalism; prefer built‑ins over custom:
 - 11.1. MUST avoid boilerplate and custom implementations when a built‑in exists.
@@ -104,7 +93,7 @@ type Role = typeof roles[number];
 
 ## 18. For functionality in Homework.Web, MUST create and maintain unit-tests, which should be put in Homework.Web.Tests.
 
-## 19. MUST NOT make changes in back-end project files.
+## 19. All template/layout should be 100% accessibility compliant! 
 
 ## 20. When making changes, MUST NOT revert/undo the existing local uncommitted changes.
 

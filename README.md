@@ -32,3 +32,10 @@
  - `cd Homework.Web.Tests`
  - `npx --yes giget@latest gh:vitest-dev/vitest/examples/basic .`
  - `npm i`
+
+# 6. Agentic coding
+ - Everywhere, where in this project the Codex was used, it adhered to the custom guideline rules AGENTS.md. You can view the rules in that file.
+ - I am using the 113 EUR monthly codex plan with GPT-6 Astra XHigh effort mode.
+ - I am doing extra re-validation with the Critic in a loop.
+
+# 7. For stuff, which is fitting to go into the server-side, it is put in the server-side code.

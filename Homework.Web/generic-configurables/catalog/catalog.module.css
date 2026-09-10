@@ -1,0 +1,149 @@
+@reference "../../app/globals.css";
+
+.page {
+  @apply flex min-h-dvh flex-1 flex-col gap-6 bg-background bg-linear-to-br from-secondary via-background to-accent/40 text-foreground;
+}
+
+.skipLink {
+  @apply sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:flex focus:min-h-11 focus:items-center focus:bg-background focus:text-foreground focus:outline-2;
+}
+
+.header {
+  @apply grid grid-cols-[1fr_minmax(0,var(--container-6xl))_1fr] gap-x-4 border-t-4 border-b border-t-primary bg-card/95 sm:gap-x-8;
+}
+
+.headerContent {
+  @apply col-start-2 flex min-h-20 flex-wrap items-center gap-x-8 gap-y-2;
+}
+
+.name {
+  @apply flex min-h-11 min-w-0 flex-1 items-center gap-3 text-xl font-bold tracking-tight text-primary wrap-anywhere focus-visible:outline-2 sm:flex-none;
+}
+
+.brandMark {
+  @apply inline-grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-lg text-primary-foreground shadow-sm shadow-primary/20;
+}
+
+.menuButton {
+  @apply min-h-11 rounded-xl border-input text-primary sm:hidden;
+}
+
+.navigation {
+  @apply hidden basis-full sm:flex sm:basis-auto;
+}
+
+.navigationOpen {
+  @apply flex;
+}
+
+.homeLink {
+  @apply flex min-h-11 items-center text-sm font-semibold text-primary underline decoration-chart-2 decoration-2 underline-offset-8 focus-visible:outline-2;
+}
+
+.main {
+  @apply grid w-full max-w-6xl flex-1 grid-cols-[1fr_minmax(0,var(--container-5xl))_1fr] content-start self-center gap-x-6 gap-y-6 sm:gap-x-10;
+}
+
+.main > * {
+  @apply col-start-2 min-w-0;
+}
+
+.heading {
+  @apply text-4xl font-bold tracking-tight md:text-5xl;
+}
+
+.toolbar {
+  @apply flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-8;
+}
+
+.trending {
+  @apply min-w-0 text-sm leading-7 wrap-anywhere;
+}
+
+.trending strong {
+  @apply font-semibold text-primary;
+}
+
+.search {
+  @apply flex w-full min-w-0 items-center gap-2 md:max-w-64;
+}
+
+.searchLabel {
+  @apply min-w-0 flex-1;
+}
+
+.visuallyHidden {
+  @apply sr-only;
+}
+
+.searchInput {
+  @apply h-12 rounded-xl border-input bg-card text-base shadow-sm shadow-primary/5 placeholder:text-muted-foreground focus-visible:ring-primary/30 md:text-base dark:bg-card;
+}
+
+.grid {
+  @apply grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8;
+}
+
+.listItem {
+  @apply min-w-0;
+}
+
+.card {
+  @apply h-full rounded-2xl ring-1 ring-border shadow-md shadow-primary/5;
+}
+
+.cardContent {
+  @apply flex h-full min-w-0 flex-col gap-4;
+}
+
+.cardTitle {
+  @apply text-base font-semibold leading-6 wrap-anywhere;
+}
+
+.details {
+  @apply flex flex-1 flex-wrap items-end justify-between gap-x-3 gap-y-1 text-sm leading-6;
+}
+
+.detail {
+  @apply min-w-0 text-muted-foreground wrap-anywhere;
+}
+
+.price {
+  @apply shrink-0 text-base font-bold whitespace-nowrap text-primary tabular-nums;
+}
+
+.resultCount {
+  @apply text-sm font-medium text-muted-foreground wrap-anywhere;
+}
+
+.pagination {
+  @apply flex flex-wrap items-center justify-center gap-3;
+}
+
+.control {
+  @apply min-h-12 rounded-xl font-semibold;
+}
+
+.pagination .control {
+  @apply min-w-24 border-input bg-card text-primary hover:bg-secondary;
+}
+
+.pagination .control:last-child {
+  @apply border-primary bg-primary text-primary-foreground hover:bg-primary/90;
+}
+
+.pageNumber {
+  @apply text-center text-sm font-medium text-muted-foreground tabular-nums;
+}
+
+.message {
+  @apply flex flex-col items-start gap-3;
+}
+
+.footer {
+  @apply grid min-h-20 grid-cols-[1fr_minmax(0,var(--container-6xl))_1fr] items-center gap-x-4 border-t bg-card/70 text-sm text-muted-foreground sm:gap-x-8;
+}
+
+.footer > * {
+  @apply col-start-2;
+}

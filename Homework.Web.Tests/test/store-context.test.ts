@@ -1,7 +1,7 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "zustand/vanilla";
-import { createStoreContext } from "@/lib/create-store-context";
+import { createStoreContext } from "@/generic-configurables/store";
 import type { CounterState } from "./types";
 
 const { StoreProvider, useStore: useCounterStore } = createStoreContext(() =>

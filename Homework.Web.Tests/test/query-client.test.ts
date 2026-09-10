@@ -1,8 +1,7 @@
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { environmentManager, useQuery, useQueryClient } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { QueryProvider } from "@/components/query-provider";
-import { getQueryClient } from "@/lib/query-client";
+import { getQueryClient, QueryProvider } from "@/generic-configurables/query";
 
 afterEach(() => {
   cleanup();
