@@ -20,6 +20,55 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## UI components
+
+The project uses [shadcn/ui](https://ui.shadcn.com/docs) with Base UI, the
+`base-nova` style, and a neutral theme. Configuration is in `components.json`,
+and editable component source lives in `components/ui/`.
+
+Setup commands used (already applied):
+
+```bash
+npx --yes shadcn@latest init --base base --defaults --yes
+npx --yes shadcn@latest add button card input label dialog --yes
+npm install next-themes
+```
+
+The CLI used for this setup was shadcn 4.21.0. The application lockfile records
+the installed dependency versions.
+
+Button, Card, Input, Label, and Dialog are available. Import them directly:
+
+```tsx
+import { Button } from "@/components/ui/button";
+
+export function SubmitButton() {
+  return <Button type="submit">Save</Button>;
+}
+```
+
+For links styled as buttons, use `buttonVariants` on an anchor or Next.js `Link`
+to preserve link semantics; see `app/page.tsx`. Base UI composition uses `render`
+where needed instead of Radix's `asChild`.
+
+Theme tokens are in `app/globals.css`. The theme provider in `app/layout.tsx`
+follows the system color scheme and applies shadcn's `.dark` class. The existing
+Geist fonts are retained. Pages and layouts remain Server Components; put state
+and event handlers in Client Components.
+
+Add more components as needed:
+
+```bash
+npx --yes shadcn@latest add select --yes
+```
+
+Validate changes:
+
+```bash
+npm run lint
+npm run build
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

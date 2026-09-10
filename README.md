@@ -1,5 +1,5 @@
 # Mac Terminal Commands, which I used to create empty project initially:
- - First things first, I updated my NodeJS version to latest stable to get the latest security patches for node and npm, which is especially important nowadays to update as frequently as possible, mainly to avoid being hacked AI cyberattackers.
+ - First things first, I updated my NodeJS version to latest stable to get the latest security patches for node and npm, which is especially important nowadays to update as frequently as possible, mainly to avoid being hacked by AI cyberattackers.
  - `cd ~/source`
  - `mkdir jurgis-if-homework`
  - `cd jurgis-if-homework`
