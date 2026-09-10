@@ -1,145 +1,229 @@
-# Deploy to Microsoft Azure
+# Deploy to Azure App Service
 
-Both sides of this application run together in one Next.js container on Azure
-Container Apps. Next.js renders the catalogue and retrieves DummyJSON data on the
-server; the browser receives the styles, fonts, JavaScript, and interactive
-search/pagination. No separate API, database, application secret, or CORS setup is
-needed. The application needs outbound HTTPS access to `dummyjson.com` at runtime.
+This project runs as one Node.js 24 application on Azure App Service for Linux.
+Next.js retrieves catalogue data and renders HTML on the server. Search,
+pagination, and menus run in the browser. The deployment includes both sides
+and retains server-side rendering.
 
-## First deployment
+GitHub builds and tests each push to `main`, then deploys the verified ZIP to
+production. Pull requests run the same checks without deploying. The application
+does not need a separate API, database, application secret, or CORS configuration.
 
-Install [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
-1.34.0 or newer. Use an Azure subscription where your account can create resource
-groups, Container Apps, a container registry, a managed identity, a Log Analytics
-workspace, and role assignments. Subscription Owner provides these permissions;
-Contributor alone cannot create the registry's `AcrPull` role assignment. The
-subscription must allow ACR Tasks and the Microsoft.App, Microsoft.ContainerRegistry,
-Microsoft.ManagedIdentity, and Microsoft.OperationalInsights resource providers.
+## One-time setup
 
-From the repository root, on Windows, macOS, or Linux:
+### 1. Create the Web App
 
-```sh
-azd auth login
-azd env new homework-dev
-azd up
-```
+Push this repository's deployment changes to `main` before connecting Azure.
+Until `AZURE_WEBAPP_NAME` is configured, the included workflow only validates.
 
-Select your subscription and a region that supports Container Apps and ACR when
-prompted. For example, use `westeurope` if it is available to your subscription.
-Use a short environment name containing lowercase letters, numbers, and hyphens.
+In [Azure Portal](https://portal.azure.com), open **Create a resource → Web App**.
 
-`azd up` provisions the resources, builds the Linux image in Azure Container
-Registry, and deploys a revision with a public HTTPS address. Open the URL printed
-at completion. Node.js, npm, Docker, and the Azure CLI are not required locally for
-this remote-build path. The build needs access to npm, Docker Hub, and Google Fonts.
+| Setting | Value |
+| --- | --- |
+| Subscription | Your Azure subscription |
+| Resource group | Create a group for this application |
+| Name | An available name, for example `homework-production-yourname` |
+| Publish | **Code** |
+| Runtime stack | **Node 24 LTS** |
+| Operating system | **Linux** |
+| Region | Your preferred available region |
+| App Service plan | **Basic B1** for a small production app |
 
-This command creates billable Azure resources. The app scales to zero when idle,
-so its first request can take longer. The Basic registry and any retained logs can
-still incur charges while the app is idle. The default maximum is one replica,
-appropriate for this homework app's local Next.js cache.
+Select **Review + create → Create → Go to resource**. B1 is a paid plan and
+continues billing while idle. Keep one instance for this application's local
+Next.js cache. Under **Settings → Configuration → General settings**, enable
+**Always On**. Keep **HTTPS Only** enabled.
 
-## Deploy changes
+Under **Settings → Configuration → General settings**, set **Startup Command**
+before the first deployment to:
 
 ```sh
-azd deploy web
+HOSTNAME=0.0.0.0 node server.js
 ```
 
-Use `azd up` after changing shared infrastructure. Application settings and the
-image are deployed together from `infra/web.bicep`; provisioning shared resources
-does not replace the running app with a placeholder image. Keep the same azd
-environment for updates. Use `azd env select homework-dev` when switching back
-from another environment. Local environment state lives in ignored `.azure/`.
+The workflow also maintains this command on later deployments. It starts the
+server at the deployed ZIP root; the repository's local `npm start` command
+instead starts the server inside its `build/` directory.
 
-## Verify a deployment
+Under **Settings → Environment variables → App settings**, set
+`SCM_DO_BUILD_DURING_DEPLOYMENT` to `false`: GitHub supplies an already-built
+application. Leave `WEBSITE_RUN_FROM_PACKAGE` unset, removing it if you are
+reusing an app that has it. ZIP deployment extracts the files so that Next.js
+can write its fetch cache. Save the settings.
 
-Visit `/health` on the deployed URL: it should return `{"status":"ok"}`. This is a
-server health check; it deliberately does not depend on the external product API.
-On the home page, verify that products load, search narrows the results, and Next
-and Previous change pages.
+### 2. Connect GitHub using Deployment Center
 
-The repository includes automated HTTP checks of server-rendered products,
-JavaScript, CSS, fonts, the icon, and 404 responses. With Node.js 24 installed,
-run these from the repository root, replacing the example URL:
+Open **Deployment → Deployment Center → Settings**:
+
+1. Select **GitHub** as the source and authorize repository access.
+2. Select your organization, `jurgis-if-homework` repository, and **main** branch.
+3. Select **GitHub Actions** as the build provider.
+4. Select **User-assigned identity** for authentication and create a new identity
+   through the wizard, or select an existing identity offered by it.
+5. Select **Save**.
+
+Your account needs permission to create the identity and assign its access to
+the app. Subscription Owner includes these permissions. If your account lacks
+them, the Azure administrator must provide an identity with the **Website
+Contributor** role on this Web App. You also need GitHub access to manage the
+repository's Actions configuration.
+
+Azure creates the GitHub authentication connection, repository secrets, and a
+starter workflow. No separate Entra application registration or client password
+is needed. The connection trusts pushes to this repository's `main` branch.
+
+### 3. Keep the repository's prepared workflow
+
+Deployment Center's starter workflow assumes an application at the repository
+root. This application lives in `Homework.Web`, so use the prepared workflow
+instead. This is a one-time configuration step:
+
+1. In **GitHub → Actions**, cancel the run started by Azure's new workflow.
+2. Open that generated file in `.github/workflows/`, typically named
+   `main_<your-app-name>.yml`. Locate its `azure/login` step.
+3. Open this repository's `.github/workflows/azure-app-service.yml`. In its
+   `azure/login` step, replace the three secret references with the matching
+   references from Azure's generated file:
+
+   | Input | Copy from the generated login step |
+   | --- | --- |
+   | `client-id` | Its complete `${{ secrets.… }}` expression |
+   | `tenant-id` | Its complete `${{ secrets.… }}` expression |
+   | `subscription-id` | Its complete `${{ secrets.… }}` expression |
+
+   Azure may give the secrets names with generated suffixes. Copy the references
+   exactly; the secret values stay in GitHub. If Azure used the existing names
+   `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`, no edits are
+   needed.
+4. Delete Azure's generated starter workflow in the same commit. Retain
+   `azure-app-service.yml` as the only deployment workflow. Commit and push to
+   `main`, or merge through a pull request if branch protection requires it.
+5. In **GitHub → Settings → Secrets and variables → Actions → Variables**, create
+   the repository variable **AZURE_WEBAPP_NAME** with the exact Web App name
+   from step 1, without a URL or `.azurewebsites.net` suffix.
+6. In **GitHub → Actions → Validate and deploy → Run workflow**, select **main**
+   and run it. Adding a variable alone does not trigger deployment.
+
+Subsequent pushes to `main` build, test, and deploy automatically. Do not add a
+GitHub `environment` to the deployment job: this connection uses a branch-based
+credential. Do not regenerate the starter workflow in Deployment Center after
+setup. Follow deployment results in GitHub Actions.
+
+### 4. Check the production site
+
+After both workflow jobs succeed, open **Azure → Web App → Overview → Default
+domain**. Use the URL shown there; Azure may include an extra suffix in the
+hostname. Confirm products appear, search narrows the results, and pagination
+works. `/health` must return `{"status":"ok"}`.
+
+The workflow checks the deployed server-rendered products, JavaScript, CSS,
+fonts, icon, and 404 response automatically. Under **Monitoring → Health check**,
+you can also enable `/health` for Azure's ongoing checks.
+
+## What gets built and deployed
+
+`npm run build` in `Homework.Web` runs ESLint and the Next.js production build.
+Its `postbuild` script packages the generated standalone server in `build/`:
+
+- `server.js` and its traced production dependencies.
+- `.next` server files and `.next/static` browser assets, including bundled fonts.
+- `public/` assets when that directory exists.
+
+Packaging removes previous `build/` contents and excludes `.env*` files. Future
+runtime secrets belong in Azure App Service's environment variables. Next.js
+still embeds build-time public variables into browser bundles as usual.
+
+The workflow archives the contents of `build/`, including hidden files, so
+`server.js` is at the ZIP root. It extracts that ZIP into an isolated directory
+and tests it before uploading the exact same ZIP for deployment. A failed check
+prevents deployment. GitHub serializes runs for the same branch and queues up
+to 100 pending runs without canceling the active deployment.
+
+The deployment action sets the startup command to:
+
+```sh
+HOSTNAME=0.0.0.0 node server.js
+```
+
+Azure supplies `PORT` and handles public HTTPS. The server uses Azure's port and
+keeps a writable, disposable Next.js fetch cache. The build runs on Linux with
+Node.js 24 so its native dependencies match App Service. Do not upload a
+locally built macOS or Windows package to the Linux app.
+
+## Local development and production checks
+
+Use Node.js 24.2 or later within version 24; `.nvmrc` selects the current version
+24 release for nvm users. From the repository root:
+
+```sh
+npm --prefix Homework.Web ci
+npm --prefix Homework.Web run dev
+```
+
+For the packaged production server:
+
+```sh
+npm --prefix Homework.Web run build
+npm --prefix Homework.Web start
+```
+
+Open `http://localhost:3000`. If your shell already defines `HOSTNAME` or `PORT`,
+set them to `0.0.0.0` and `3000` for this local check.
+
+In another terminal, install the independent test project and run its checks:
 
 ```sh
 npm --prefix Homework.Web.Tests ci
+npm --prefix Homework.Web.Tests test
+npm --prefix Homework.Web.Tests run build
 ```
 
-Bash or zsh:
+To run HTTP checks against the local server or the production URL, set
+`DEPLOYMENT_URL`. For Bash or zsh:
 
 ```sh
-DEPLOYMENT_URL=https://your-app.azurecontainerapps.io npm --prefix Homework.Web.Tests test -- test/deployment.test.ts
+DEPLOYMENT_URL=http://localhost:3000 npm --prefix Homework.Web.Tests test -- test/deployment.test.ts
 ```
 
-PowerShell:
+For PowerShell:
 
 ```powershell
-$env:DEPLOYMENT_URL = 'https://your-app.azurecontainerapps.io'
+$env:DEPLOYMENT_URL = 'http://localhost:3000'
 npm --prefix Homework.Web.Tests test -- test/deployment.test.ts
 ```
 
-The product check also verifies that DummyJSON is reachable and returning valid
-data. An upstream outage fails that check while `/health` remains successful.
-Ordinary `npm test` skips these HTTP checks when `DEPLOYMENT_URL` is unset.
+Ordinary unit tests skip the HTTP checks when `DEPLOYMENT_URL` is unset.
 
-GitHub's **Validate** workflow runs unit tests and TypeScript checks, validates both
-Bicep templates, builds the actual Linux image, and runs the HTTP checks against
-that image. It needs no Azure credentials and does not deploy resources.
+## Operations and troubleshooting
 
-## Run the same image locally
+- The GitHub **Validate and deploy** workflow is the source of build and
+  deployment logs. A skipped deployment usually means `AZURE_WEBAPP_NAME` is
+  missing or the run is not for `main`.
+- For Azure login failures, check the three secret references, the identity's
+  access to the Web App, and its federated repository/branch. Keep `main` as
+  the deployment branch in both Azure's connection and this workflow.
+- For startup failures, open **Azure → Web App → Monitoring → Log stream**.
+  Check Node 24 LTS, the startup command, and the ZIP's root layout. The workflow
+  extracts and deploys prebuilt files; server-side rebuilds must stay disabled.
+- The build needs access to npm and Google Fonts. Runtime needs outbound HTTPS
+  to `dummyjson.com`. Catalogue retrieval times out after ten seconds and
+  revalidates cached responses after five minutes.
+- `/health` deliberately does not call DummyJSON. An upstream failure can leave
+  `/health` successful while the catalogue and its HTTP test fail. The existing
+  **Try again** button reloads the page.
+- Deployment replaces files and restarts the app. A single B1 instance can have
+  a brief interruption during deployment. This setup does not provide staging
+  slots or automatic rollback.
+- To roll back code, revert the problematic commit on `main` and push. The same
+  workflow builds, checks, and deploys the reverted version.
+- Removing the old deployment files from this repository does not delete any
+  previously provisioned Azure resources. After verifying the App Service site,
+  review and delete any resources dedicated to the previous deployment so they
+  stop billing. Keep unrelated resources and shared App Service plans.
 
-With Docker installed, run these from the repository root:
+## References
 
-```sh
-docker build --platform linux/amd64 -f Homework.Web/generic-configurables/hosting/Dockerfile -t homework:local Homework.Web
-docker run --rm --publish 3000:3000 homework:local
-```
-
-Open `http://localhost:3000`. The image uses Node.js 24, runs as the `node` user,
-listens on `0.0.0.0:3000`, and includes the standalone server plus static assets.
-Its Next.js cache is writable and disposable. Do not mount the application as a
-read-only filesystem. Runtime data is fetched on requests; building the image
-does not require the product API to respond.
-
-Normal development is unchanged: run `npm ci` and `npm run dev` inside
-`Homework.Web`. Use Node.js 24; `.nvmrc` selects that version for nvm users.
-
-## Configuration and troubleshooting
-
-- `azure.yaml` selects remote builds and revision deployment. `infra/main.bicep`
-  configures shared resources; `infra/web.bicep` configures this application's
-  container. Reusable hosting definitions live in
-  `Homework.Web/generic-configurables/hosting/`.
-- Azure terminates HTTPS. The container serves HTTP internally on port 3000.
-  Startup, readiness, and liveness probes call `/health` on that same port.
-- Container Apps pulls images using managed identity. The registry's admin
-  account is disabled; no registry password or publish profile is stored.
-- Build inputs use an allowlist in `Homework.Web/.dockerignore`. Local `.env`
-  files, PEM/key files, `node_modules`, and `.next` are excluded. Configure any
-  future runtime secrets using Container Apps secrets, not the image.
-- If provisioning fails with authorization errors, check role-assignment
-  permissions and resource-provider registration. If a subscription disallows
-  ACR Tasks, enable that capability or use a subscription that supports it.
-- Inspect failed builds in the registry's Tasks/Runs view. Inspect startup,
-  image-pull, and request errors in the Container App's Log stream and Revisions
-  views. If the first image pull fails during role-assignment propagation, retry
-  `azd deploy web` once Azure has applied the `AcrPull` assignment.
-- A product error with a healthy server indicates an external API/network/data
-  problem. The existing Try again button retries the page. The Next.js fetch
-  cache revalidates after five minutes and is recreated on new replicas.
-- To roll back, check out the desired revision in a separate clean checkout.
-  Run `azd env new` with the original environment name, subscription, and region,
-  then `azd env refresh` to retrieve the provisioned resource outputs. Run
-  `azd deploy web` to deploy that source revision to the existing environment.
-
-## Remove this environment
-
-From the correct selected azd environment, run `azd down` and review its
-confirmation. It deletes the environment's resource group and all resources
-inside it, including its images and logs.
-
-## Reference
-
-This setup follows Microsoft's [remote build workflow](https://learn.microsoft.com/azure/developer/azure-developer-cli/remote-builds)
-and [revision deployment workflow](https://learn.microsoft.com/azure/developer/azure-developer-cli/container-apps-workflows),
-and Next.js [standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output).
+- [Create a Node.js Web App](https://learn.microsoft.com/azure/app-service/quickstart-nodejs).
+- [Deployment Center and GitHub authentication](https://learn.microsoft.com/azure/app-service/deploy-continuous-deployment).
+- [Deploy a built application with GitHub Actions](https://learn.microsoft.com/azure/app-service/deploy-github-actions).
+- [Next.js standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output).

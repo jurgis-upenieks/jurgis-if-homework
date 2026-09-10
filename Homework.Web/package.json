@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run lint && next build",
-    "start": "next start",
+    "postbuild": "node generic-configurables/hosting/package-application.mts",
+    "start": "node build/server.js",
     "lint": "eslint"
   },
   "dependencies": {
@@ -30,5 +31,5 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "engines": { "node": ">=24 <25" }
+  "engines": { "node": ">=24.2 <25" }
 }

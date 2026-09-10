@@ -1,0 +1,112 @@
+name: Validate and deploy
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: app-service-${{ github.ref }}
+  cancel-in-progress: false
+  queue: max
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            Homework.Web/package-lock.json
+            Homework.Web.Tests/package-lock.json
+      - name: Install test dependencies
+        run: npm ci
+        working-directory: Homework.Web.Tests
+      - name: Run unit tests and test-project checks
+        run: npm test && npm run build
+        working-directory: Homework.Web.Tests
+      - name: Install application dependencies
+        run: npm ci
+        working-directory: Homework.Web
+      - name: Build and package the production application
+        run: npm run build
+        working-directory: Homework.Web
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+      - name: Archive the deployment package
+        run: zip -qr "$RUNNER_TEMP/application.zip" .
+        working-directory: Homework.Web/build
+      - name: Start the isolated deployment package
+        run: |
+          unzip -q "$RUNNER_TEMP/application.zip" -d "$RUNNER_TEMP/application"
+          node "$RUNNER_TEMP/application/server.js" > "$RUNNER_TEMP/server.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/server.pid"
+          curl --fail --retry 30 --retry-delay 2 --retry-all-errors --max-time 5 http://localhost:3000/health
+        env:
+          HOSTNAME: 0.0.0.0
+          PORT: "3000"
+      - name: Check server rendering and browser assets
+        run: npm test -- test/deployment.test.ts
+        working-directory: Homework.Web.Tests
+        env:
+          DEPLOYMENT_URL: http://localhost:3000
+      - name: Stop the test server and show its logs
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/server.pid" ]; then kill "$(cat "$RUNNER_TEMP/server.pid")" || true; fi
+          if [ -f "$RUNNER_TEMP/server.log" ]; then cat "$RUNNER_TEMP/server.log"; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: application
+          path: ${{ runner.temp }}/application.zip
+          if-no-files-found: error
+          retention-days: 7
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AZURE_WEBAPP_NAME != ''
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: application
+          path: ${{ runner.temp }}
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy the verified package
+        id: deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          package: ${{ runner.temp }}/application.zip
+          startup-command: HOSTNAME=0.0.0.0 node server.js
+          clean: true
+          restart: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: Homework.Web.Tests/package-lock.json
+      - name: Install deployment-check dependencies
+        run: npm ci
+        working-directory: Homework.Web.Tests
+      - name: Wait for the production server
+        run: curl --fail --retry 30 --retry-delay 5 --retry-all-errors --max-time 10 "$DEPLOYMENT_URL/health"
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.webapp-url }}
+      - name: Verify production rendering and browser assets
+        run: npm test -- test/deployment.test.ts
+        working-directory: Homework.Web.Tests
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.webapp-url }}
