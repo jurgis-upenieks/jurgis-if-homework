@@ -17,9 +17,6 @@
   --color-primary: var(--primary);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
 }
 
 :root {
@@ -38,7 +35,6 @@
   --input: var(--color-stone-500);
   --ring: var(--primary);
   --chart-2: var(--color-amber-600);
-  --radius: calc(var(--spacing) * 1.5);
 }
 
 .dark {

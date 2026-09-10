@@ -1,0 +1,13 @@
+name: homework
+requiredVersions:
+  azd: ">= 1.34.0"
+services:
+  web:
+    project: ./Homework.Web
+    language: docker
+    host: containerapp
+    apiVersion: "2025-07-01"
+    docker:
+      path: ./generic-configurables/hosting/Dockerfile
+      context: .
+      remoteBuild: true

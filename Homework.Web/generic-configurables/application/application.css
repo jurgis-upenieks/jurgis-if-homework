@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./clamps.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -8,7 +9,7 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-clamp-4 leading-normal text-foreground;
   }
 
   html {

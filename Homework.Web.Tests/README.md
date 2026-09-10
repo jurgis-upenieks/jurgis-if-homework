@@ -24,7 +24,7 @@ including dependency installation, configuration changes, validation, and stagin
 
 ## Install and run
 
-Use Node.js 24 or newer. Keep `Homework.Web.Tests` and `Homework.Web` next to each
+Use Node.js 24. Keep `Homework.Web.Tests` and `Homework.Web` next to each
 other in the repository. Only the sibling application's source is needed;
 the test project owns its dependencies and does not need an application
 installation, build, or running server.
@@ -59,7 +59,10 @@ Shared control tests cover native form submission, disabled actions, input label
 refs and values, semantic cards, and application provider defaults.
 Catalogue tests cover server retrieval and validation, the inclusive discount
 threshold, global ranking, title-only search across pages, pagination boundaries,
-empty and error states, and mobile navigation controls.
+empty and error states, and mobile navigation controls. Health checks cover the
+uncached, external-service-independent deployment endpoint. Optional deployed-app
+checks verify server-rendered products and browser assets; see
+[DEPLOYMENT.md](../DEPLOYMENT.md) for `DEPLOYMENT_URL` usage.
 
 The `@/` alias points to `../Homework.Web` in both Vite and TypeScript.
 Dependencies resolve from the test project's installation. Vite deduplicates

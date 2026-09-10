@@ -1,0 +1,18 @@
+@reference "../../app/globals.css";
+
+.messagePage {
+  @apply grid min-h-dvh grid-cols-[1fr_minmax(0,var(--spacing-clamp-10))_1fr] content-center gap-clamp-5 bg-background text-clamp-4 text-foreground;
+}
+
+.messageContent {
+  @apply col-start-2 flex min-w-0 flex-col items-start gap-clamp-5 wrap-anywhere;
+}
+
+.messageTitle {
+  @apply text-clamp-6 leading-tight font-bold;
+}
+
+.messageLink {
+  @apply flex min-h-clamp-7 max-w-full items-center text-primary underline decoration-(length:--spacing-clamp-0) underline-offset-(--spacing-clamp-2);
+  @apply focus-visible:outline-(length:--spacing-clamp-1);
+}

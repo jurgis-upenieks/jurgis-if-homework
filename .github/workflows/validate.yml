@@ -1,0 +1,46 @@
+name: Validate
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: Homework.Web.Tests/package-lock.json
+      - name: Install test dependencies
+        run: npm ci
+        working-directory: Homework.Web.Tests
+      - name: Run unit tests and test-project checks
+        run: npm test && npm run build
+        working-directory: Homework.Web.Tests
+      - name: Validate infrastructure
+        run: |
+          az bicep build --file infra/main.bicep --outfile "$RUNNER_TEMP/main.json"
+          az bicep build --file infra/web.bicep --outfile "$RUNNER_TEMP/web.json"
+      - name: Build the deployment image
+        run: docker build --platform linux/amd64 -f Homework.Web/generic-configurables/hosting/Dockerfile -t homework:check Homework.Web
+      - name: Start the deployment image
+        run: |
+          docker run --detach --name homework-check --publish 3000:3000 homework:check
+          curl --fail --retry 30 --retry-delay 2 --retry-all-errors --max-time 5 http://localhost:3000/health
+      - name: Check server rendering and browser assets
+        run: npm test -- test/deployment.test.ts
+        working-directory: Homework.Web.Tests
+        env:
+          DEPLOYMENT_URL: http://localhost:3000
+      - name: Show container logs
+        if: always()
+        run: docker logs homework-check || true
+      - name: Stop the container
+        if: always()
+        run: docker rm --force homework-check || true

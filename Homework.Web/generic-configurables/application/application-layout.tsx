@@ -4,12 +4,16 @@ import { ApplicationProviders } from "./application-providers";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
-export function ApplicationLayout({ children }: PropsWithChildren) {
+export function ApplicationDocument({ children }: PropsWithChildren) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
-        <ApplicationProviders>{children}</ApplicationProviders>
+        {children}
       </body>
     </html>
   );
+}
+
+export function ApplicationLayout({ children }: PropsWithChildren) {
+  return <ApplicationDocument><ApplicationProviders>{children}</ApplicationProviders></ApplicationDocument>;
 }

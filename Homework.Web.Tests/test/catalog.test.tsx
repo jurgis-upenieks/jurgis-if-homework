@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Catalog } from "@/generic-configurables/catalog/catalog";
 import type { CatalogData } from "@/generic-configurables/catalog/types";
 
@@ -14,10 +14,43 @@ const data: CatalogData = {
   trendingTitle: "Highest rated item outside the current page",
 };
 
+let resizeHeader = vi.fn<() => void>();
+const disconnect = vi.fn();
+
+beforeEach(() => {
+  disconnect.mockClear();
+  vi.stubGlobal("ResizeObserver", class {
+    constructor(callback: ResizeObserverCallback) {
+      resizeHeader = vi.fn(() => callback([], this));
+    }
+
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = disconnect;
+  });
+});
+
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+
+function measureHeader(width: number) {
+  const brand = screen.getByRole("link", { name: "Homework" });
+  const frame = brand.parentElement;
+  const menu = screen.getByText("Menu");
+  const navigation = document.getElementById(menu.getAttribute("aria-controls") ?? "");
+
+  if (!frame || !navigation) throw new Error("Header navigation was not rendered.");
+
+  frame.style.columnGap = "24px";
+  vi.spyOn(frame, "clientWidth", "get").mockReturnValue(width);
+  vi.spyOn(brand, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ width: 200 }));
+  vi.spyOn(navigation, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ width: 64 }));
+  act(() => resizeHeader());
+  return { menu, navigation };
+}
 
 describe("Catalogue interaction", () => {
   it("shows cards with titles, brands, prices, and a global trending title", () => {
@@ -25,6 +58,10 @@ describe("Catalogue interaction", () => {
 
     const cards = within(screen.getByRole("list", { name: "Products" })).getAllByRole("listitem");
     expect(cards).toHaveLength(5);
+    for (const card of cards) {
+      expect(within(card).getByRole("article").getAttribute("data-slot")).toBe("card");
+      expect(within(card).getAllByRole("heading", { level: 2 })).toHaveLength(1);
+    }
     expect(within(cards[0]).getByRole("heading", { name: "iPhone 9" })).toBeTruthy();
     expect(within(cards[0]).getByText("Apple")).toBeTruthy();
     expect(within(cards[0]).getByText(/549\s*€/)).toBeTruthy();
@@ -123,6 +160,45 @@ describe("Catalogue interaction", () => {
     expect(menu.getAttribute("aria-expanded")).toBe("true");
     fireEvent.click(menu);
     expect(menu.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("adapts navigation to measured content and clamp gaps without a screen breakpoint", () => {
+    const { unmount } = render(<Catalog name="Homework" title="Products" data={data} />);
+    const { menu, navigation } = measureHeader(280);
+    expect(menu.hasAttribute("hidden")).toBe(false);
+    expect(navigation.getAttribute("aria-hidden")).toBe("true");
+    expect(navigation.hasAttribute("inert")).toBe(true);
+
+    measureHeader(288);
+    expect(menu.hasAttribute("hidden")).toBe(true);
+    expect(navigation.getAttribute("aria-hidden")).toBe("false");
+    expect(navigation.hasAttribute("inert")).toBe(false);
+
+    const frame = screen.getByRole("link", { name: "Homework" }).parentElement;
+    if (!frame) throw new Error("Header was not rendered.");
+    frame.style.columnGap = "32px";
+    act(() => resizeHeader());
+    expect(menu.hasAttribute("hidden")).toBe(false);
+    expect(navigation.getAttribute("aria-hidden")).toBe("true");
+
+    unmount();
+    expect(disconnect).toHaveBeenCalledOnce();
+  });
+
+  it("preserves keyboard focus when navigation expands or collapses after resizing", () => {
+    render(<Catalog name="Homework" title="Products" data={data} />);
+    const { menu, navigation } = measureHeader(280);
+    menu.focus();
+
+    measureHeader(400);
+    const home = screen.getByRole("link", { name: "Home" });
+    expect(document.activeElement).toBe(home);
+
+    measureHeader(280);
+    expect(document.activeElement).toBe(home);
+    expect(menu.getAttribute("aria-expanded")).toBe("true");
+    expect(navigation.getAttribute("aria-hidden")).toBe("false");
+    expect(navigation.hasAttribute("inert")).toBe(false);
   });
 
   it("clamps the page when the catalogue shrinks", () => {

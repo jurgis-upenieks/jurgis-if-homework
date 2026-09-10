@@ -1,3 +1,8 @@
+# Deploy to Azure
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the `azd up` deployment of the complete
+Next.js application, including its server-side data retrieval and browser assets.
+
 # 1. Initial empty project creation and repository creation commands
  - First things first, I updated my NodeJS version to latest stable to get the latest security patches for node and npm, which is especially important nowadays to update as frequently as possible, mainly to avoid being hacked by AI cyberattackers.
  - `cd ~/source`

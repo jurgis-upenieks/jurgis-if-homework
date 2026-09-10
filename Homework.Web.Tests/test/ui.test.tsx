@@ -2,10 +2,15 @@ import { createRef } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Button, Card, Input } from "@/generic-configurables/ui";
+import { Card as PublicCard } from "@/components/ui/card";
 
 afterEach(cleanup);
 
 describe("Shared controls", () => {
+  it("uses the same card implementation through the public component path", () => {
+    expect(PublicCard).toBe(Card);
+  });
+
   it("keeps ordinary buttons out of form submission and supports explicit submit buttons", () => {
     const submit = vi.fn();
     render(

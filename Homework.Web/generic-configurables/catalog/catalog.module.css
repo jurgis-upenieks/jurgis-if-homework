@@ -1,47 +1,51 @@
 @reference "../../app/globals.css";
 
 .page {
-  @apply flex min-h-dvh flex-1 flex-col gap-6 bg-background bg-linear-to-br from-secondary via-background to-accent/40 text-foreground;
+  @apply flex min-h-dvh flex-1 flex-col gap-clamp-5 bg-background bg-linear-to-br from-secondary via-background to-accent/40 text-foreground;
 }
 
 .skipLink {
-  @apply sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:flex focus:min-h-11 focus:items-center focus:bg-background focus:text-foreground focus:outline-2;
+  @apply sr-only focus:not-sr-only focus:fixed focus:start-clamp-4 focus:top-clamp-4 focus:z-50 focus:flex focus:min-h-clamp-7 focus:items-center focus:gap-clamp-2;
+  @apply focus:bg-background focus:text-foreground focus:outline-(length:--spacing-clamp-1) focus:before:content-[''] focus:after:content-[''];
 }
 
 .header {
-  @apply grid grid-cols-[1fr_minmax(0,var(--container-6xl))_1fr] gap-x-4 border-t-4 border-b border-t-primary bg-card/95 sm:gap-x-8;
+  @apply grid grid-cols-[1fr_minmax(0,var(--spacing-clamp-10))_1fr] gap-x-clamp-4 border-t-(length:--spacing-clamp-1) border-b-(length:--spacing-clamp-0);
+  @apply border-t-primary bg-card/95;
 }
 
 .headerContent {
-  @apply col-start-2 flex min-h-20 flex-wrap items-center gap-x-8 gap-y-2;
+  @apply relative col-start-2 flex min-h-clamp-8 flex-wrap items-center gap-x-clamp-5 gap-y-clamp-2;
 }
 
 .name {
-  @apply flex min-h-11 min-w-0 flex-1 items-center gap-3 text-xl font-bold tracking-tight text-primary wrap-anywhere focus-visible:outline-2 sm:flex-none;
+  @apply flex min-h-clamp-7 min-w-0 max-w-full shrink-0 items-center gap-clamp-2 text-clamp-5 font-bold tracking-tight text-primary wrap-anywhere;
+  @apply focus-visible:outline-(length:--spacing-clamp-1);
 }
 
 .brandMark {
-  @apply inline-grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-lg text-primary-foreground shadow-sm shadow-primary/20;
+  @apply inline-grid size-clamp-6 shrink-0 place-items-center rounded-clamp-2 bg-primary text-clamp-4 text-primary-foreground shadow-clamp-1 shadow-primary/20;
 }
 
 .menuButton {
-  @apply min-h-11 rounded-xl border-input text-primary sm:hidden;
+  @apply rounded-clamp-2 border-input text-primary;
 }
 
 .navigation {
-  @apply hidden basis-full sm:flex sm:basis-auto;
+  @apply flex w-max max-w-full shrink-0 flex-wrap gap-clamp-2;
 }
 
-.navigationOpen {
-  @apply flex;
+.navigation[aria-hidden="true"] {
+  @apply invisible pointer-events-none absolute;
 }
 
 .homeLink {
-  @apply flex min-h-11 items-center text-sm font-semibold text-primary underline decoration-chart-2 decoration-2 underline-offset-8 focus-visible:outline-2;
+  @apply flex min-h-clamp-7 items-center text-clamp-3 font-semibold text-primary underline decoration-chart-2;
+  @apply decoration-(length:--spacing-clamp-1) underline-offset-(--spacing-clamp-2) focus-visible:outline-(length:--spacing-clamp-1);
 }
 
 .main {
-  @apply grid w-full max-w-6xl flex-1 grid-cols-[1fr_minmax(0,var(--container-5xl))_1fr] content-start self-center gap-x-6 gap-y-6 sm:gap-x-10;
+  @apply grid w-full max-w-clamp-10 flex-1 grid-cols-[0_minmax(0,1fr)_0] content-start self-center gap-clamp-5;
 }
 
 .main > * {
@@ -49,15 +53,15 @@
 }
 
 .heading {
-  @apply text-4xl font-bold tracking-tight md:text-5xl;
+  @apply text-clamp-6 leading-tight font-bold tracking-tight wrap-anywhere;
 }
 
 .toolbar {
-  @apply flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-8;
+  @apply flex flex-wrap items-center gap-clamp-5;
 }
 
 .trending {
-  @apply min-w-0 text-sm leading-7 wrap-anywhere;
+  @apply min-w-0 text-clamp-3 wrap-anywhere;
 }
 
 .trending strong {
@@ -65,7 +69,7 @@
 }
 
 .search {
-  @apply flex w-full min-w-0 items-center gap-2 md:max-w-64;
+  @apply flex w-clamp-9 max-w-full min-w-0 items-center gap-clamp-2;
 }
 
 .searchLabel {
@@ -77,11 +81,11 @@
 }
 
 .searchInput {
-  @apply h-12 rounded-xl border-input bg-card text-base shadow-sm shadow-primary/5 placeholder:text-muted-foreground focus-visible:ring-primary/30 md:text-base dark:bg-card;
+  @apply rounded-clamp-2 border-input bg-card shadow-clamp-1 shadow-primary/5 dark:bg-card;
 }
 
 .grid {
-  @apply grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8;
+  @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,var(--spacing-clamp-9)),1fr))] items-start gap-clamp-5 empty:hidden;
 }
 
 .listItem {
@@ -89,19 +93,15 @@
 }
 
 .card {
-  @apply h-full rounded-2xl ring-1 ring-border shadow-md shadow-primary/5;
-}
-
-.cardContent {
-  @apply flex h-full min-w-0 flex-col gap-4;
+  @apply rounded-clamp-3 ring-border shadow-clamp-2 shadow-primary/5;
 }
 
 .cardTitle {
-  @apply text-base font-semibold leading-6 wrap-anywhere;
+  @apply text-clamp-4 font-semibold wrap-anywhere;
 }
 
 .details {
-  @apply flex flex-1 flex-wrap items-end justify-between gap-x-3 gap-y-1 text-sm leading-6;
+  @apply flex flex-wrap items-baseline gap-x-clamp-2 gap-y-clamp-1 text-clamp-3;
 }
 
 .detail {
@@ -109,23 +109,23 @@
 }
 
 .price {
-  @apply shrink-0 text-base font-bold whitespace-nowrap text-primary tabular-nums;
+  @apply min-w-0 text-clamp-4 font-bold text-primary tabular-nums wrap-anywhere;
 }
 
 .resultCount {
-  @apply text-sm font-medium text-muted-foreground wrap-anywhere;
+  @apply text-clamp-3 font-medium text-muted-foreground wrap-anywhere;
 }
 
 .pagination {
-  @apply flex flex-wrap items-center justify-center gap-3;
+  @apply flex flex-wrap items-center justify-center gap-clamp-2;
 }
 
 .control {
-  @apply min-h-12 rounded-xl font-semibold;
+  @apply rounded-clamp-2 font-semibold;
 }
 
 .pagination .control {
-  @apply min-w-24 border-input bg-card text-primary hover:bg-secondary;
+  @apply min-w-clamp-8 border-input bg-card text-primary hover:bg-secondary;
 }
 
 .pagination .control:last-child {
@@ -133,17 +133,18 @@
 }
 
 .pageNumber {
-  @apply text-center text-sm font-medium text-muted-foreground tabular-nums;
+  @apply text-center text-clamp-3 font-medium text-muted-foreground tabular-nums;
 }
 
 .message {
-  @apply flex flex-col items-start gap-3;
+  @apply flex flex-col items-start gap-clamp-2;
 }
 
 .footer {
-  @apply grid min-h-20 grid-cols-[1fr_minmax(0,var(--container-6xl))_1fr] items-center gap-x-4 border-t bg-card/70 text-sm text-muted-foreground sm:gap-x-8;
+  @apply grid min-h-clamp-8 grid-cols-[1fr_minmax(0,var(--spacing-clamp-10))_1fr] items-center gap-x-clamp-4;
+  @apply border-t-(length:--spacing-clamp-0) bg-card/70 text-clamp-3 text-muted-foreground wrap-anywhere;
 }
 
 .footer > * {
-  @apply col-start-2;
+  @apply col-start-2 min-w-0;
 }

@@ -1,20 +1,25 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import type { CatalogProps } from "./types";
 import styles from "./catalog.module.css";
 
 export function Catalog({ name, title, trendingLabel = "Trending item", missingDetail = "Not specified", pageSize = 12, currency = "EUR", data, failed = false }: CatalogProps) {
   const id = useId();
   const searchInput = useRef<HTMLInputElement>(null);
+  const headerContent = useRef<HTMLDivElement>(null);
+  const brand = useRef<HTMLAnchorElement>(null);
+  const navigation = useRef<HTMLElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const restoreNavigationFocus = useRef(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [compactNavigation, setCompactNavigation] = useState(true);
   const query = search.trim().toLocaleLowerCase("en");
   const items = data?.items.filter((item) => item.title.toLocaleLowerCase("en").includes(query)) ?? [];
   const size = Number.isFinite(pageSize) ? Math.max(1, Math.floor(pageSize)) : 12;
@@ -25,25 +30,64 @@ export function Catalog({ name, title, trendingLabel = "Trending item", missingD
   const formatter = new Intl.NumberFormat("de-DE", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 2 });
   const loading = !data && !failed;
 
+  useEffect(() => {
+    const headerElement = headerContent.current;
+    const brandElement = brand.current;
+    const navigationElement = navigation.current;
+
+    if (!headerElement || !brandElement || !navigationElement) return;
+
+    const observer = new ResizeObserver(() => {
+      const gap = Number.parseFloat(getComputedStyle(headerElement).columnGap);
+      const requiredWidth = brandElement.getBoundingClientRect().width + navigationElement.getBoundingClientRect().width + gap;
+      const compact = requiredWidth > headerElement.clientWidth;
+
+      if (compact && navigationElement.contains(document.activeElement)) setMenuOpen(true);
+      restoreNavigationFocus.current = !compact && document.activeElement === menuButton.current;
+      setCompactNavigation(compact);
+    });
+
+    observer.observe(headerElement);
+    observer.observe(brandElement);
+    observer.observe(navigationElement);
+    return () => observer.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (restoreNavigationFocus.current) {
+      navigation.current?.querySelector<HTMLAnchorElement>("a[href]")?.focus();
+      restoreNavigationFocus.current = false;
+    }
+  }, [compactNavigation]);
+
   return (
     <div className={styles.page}>
       <a href={`#${id}-main`} className={styles.skipLink}>Skip to content</a>
       <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <Link className={styles.name} href="/">
+        <div ref={headerContent} className={styles.headerContent}>
+          <Link ref={brand} className={styles.name} href="/">
             <span aria-hidden="true" className={styles.brandMark}>{name.charAt(0)}</span>
             {name}
           </Link>
           <Button
+            ref={menuButton}
             variant="outline"
             className={styles.menuButton}
+            hidden={!compactNavigation}
             aria-expanded={menuOpen}
             aria-controls={`${id}-navigation`}
             onClick={() => setMenuOpen(!menuOpen)}
           >
             Menu
           </Button>
-          <nav id={`${id}-navigation`} aria-label="Main navigation" className={cn(styles.navigation, menuOpen && styles.navigationOpen)}>
+          <nav
+            ref={navigation}
+            id={`${id}-navigation`}
+            aria-label="Main navigation"
+            aria-hidden={compactNavigation && !menuOpen}
+            inert={compactNavigation && !menuOpen}
+            className={styles.navigation}
+          >
             <Link className={styles.homeLink} href="/" aria-current="page">Home</Link>
           </nav>
         </div>
@@ -89,14 +133,11 @@ export function Catalog({ name, title, trendingLabel = "Trending item", missingD
             <ul id={`${id}-items`} role="list" aria-label={title} className={styles.grid}>
               {visibleItems.map((item) => (
                 <li key={item.id} className={styles.listItem}>
-                  <Card className={styles.card}>
-                    <CardContent className={styles.cardContent}>
-                      <h2 className={styles.cardTitle}>{item.title}</h2>
-                      <p className={styles.details}>
-                        <span className={styles.detail}>{item.detail ?? missingDetail}</span>
-                        <span className={styles.price}>{formatter.format(item.amount)}</span>
-                      </p>
-                    </CardContent>
+                  <Card title={item.title} className={styles.card}>
+                    <p className={styles.details}>
+                      <span className={styles.detail}>{item.detail ?? missingDetail}</span>
+                      <span className={styles.price}>{formatter.format(item.amount)}</span>
+                    </p>
                   </Card>
                 </li>
               ))}
