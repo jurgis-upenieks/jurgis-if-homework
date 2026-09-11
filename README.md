@@ -45,3 +45,18 @@ server-side data retrieval, server-side rendering, and interactive browser UI.
  - I am doing extra re-validation with the Critic in a loop.
 
 # 7. For stuff, which is fitting to go into the server-side, it is put in the server-side code.
+
+# 8. Deployed with Azure CI/CD
+ - This full-stack app has been deployed to Azure cloud and the deployed version is publically available in: https://jurgis-if-homework-f7fmdjdcfndsbqdu.germanywestcentral-01.azurewebsites.net
+ - This is a full-stack Next.js app, and in Azure it has also the server-side running (for server-side-rendering and for responding to REST API requests from the client-side).
+ - The deployment method in Azure is App Service Web App with:
+   - Publish as: Code
+   - Runtime stack: Node 24
+   - Operating system: Linux
+   - Region: Germany West Central
+   - From Azure side I have created a custom manged github identity, and then from github side I have set up all the actions secrets variables with azure identities.
+   - Then I triggered the first deployment to Azure from the Github Actions -> Run workflow.
+   - From that point on, on every future git push to 'main' branch, that github actions workflow is triggered automatically.
+ - I have configured the Azure pipelines, so that on every git-push to 'main' branch the following jobs are automatically triggered: build, run unit-tests and deploy to production.
+ - I have configured the pipelines so that the deployment to production is gated by unit-tests run.
+ - The Azure CI/CD pipelines configuration is in: .github/workflows/azure-app-service.yml
