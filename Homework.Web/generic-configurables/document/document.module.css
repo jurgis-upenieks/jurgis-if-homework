@@ -1,4 +1,4 @@
-@reference "../../app/globals.css";
+@reference "../application/application.css";
 
 .sections {
   @apply grid content-start gap-layout-gap text-clamp-3;

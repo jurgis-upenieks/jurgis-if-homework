@@ -20,7 +20,7 @@ export type CollectionSource = {
 };
 
 
-export type CatalogItem = {
+type CatalogItem = {
   id: string | number;
   title: string;
   detail: string | null;

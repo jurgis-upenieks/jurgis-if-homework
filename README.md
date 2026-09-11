@@ -23,6 +23,7 @@
 
 # 3. Integrating Zustand state management solution into the project to avoid property drilling
  - `npm install zustand`
+ - Zustand is available for shared client state when it removes property drilling. Current component-local state needs no store or unused provider scaffolding.
 
 # 4. Integrating TanStack Query solution for managing data retrieval from back-end and external services
  - `npm install @tanstack/react-query`
@@ -62,9 +63,28 @@
  - The layout is fully responsive - all layout parts shift and resize as needed.
  - When user is scrolling the page vertically, all parts except the page contents products list, stay in place (fixed) and are always visible. Only the products list can be scrolled vertically.
  - On both pages, the content scrollbar is at the far right of the site and starts at the site header's bottom edge. On the Products page it ends at the footer's top edge, excluding both the header and footer. On Technical details, which has no footer, it ends at the viewport bottom. The shared Base UI scroll area keeps the header, page title, search, and pagination in place while the content scrolls.
+ - When the screen is too short to fit the controls, the document can scroll so the content region remains reachable instead of collapsing to zero height.
 
-# 10. Unit-tests are automatically generated and maintained as needed by codex, because it is instructed to do so by the AGENTS.md custom guideline rules. It does that automatically every time I am asking to implement or change something. This ensures that the unit-test coverage is always guaranteed to be close to 100%.
+# 10. Meaningful unit tests
+ - Unit tests in Homework.Web.Tests cover repository behavior, including retrieval, search, pagination, loading interaction, navigation, documentation, and packaging. Tests are maintained alongside functionality changes; the guidelines do not guarantee a coverage percentage.
+ - Responsive layout is also checked in a real browser, and directly and indirectly related code is reviewed before the final build and lint checks.
+ - To run all unit-tests, from the project root dir run `npm --prefix Homework.Web.Tests test`
 
-# 11. There is a loading spinner and a half transparent full site overlay so a user is blocked from interacting with front-end while waiting for the remote/async actions to be completed. And it has a slow fade in when needs to be shown to reduce screen flashing, and fade out quickly, when is not needed anymore. And it is implemented in global way, so it automatically/implicitly applies to absolutely all remote calls.
+# 11. Shared loading interaction
+ - A half-transparent overlay automatically follows all active TanStack Query requests and mutations. It blocks other controls while the search field remains editable. Its spinner rotates continuously while the overlay fades in over 2 seconds and out over 0.1 second, including with reduced-motion preferences.
+ - Search applies after 300 ms without typing, or immediately on form submission with Enter. Equivalent searches preserve the current page and scroll position. Clear cancels pending typing and returns to the first page.
 
 # 12. I have configured so that the "Technical details" page is rendered only on build/compile-time, because it has a fully static contents. The server-side-renderer is never bothered with re-rendering of that page.
+ - This page renders the repository README directly during the build, keeping its content synchronized with this file.
+
+# 13. Locally running or building the app
+ - To build the app, from project root dir run command: `npm --prefix Homework.Web run build`
+ - To run the app locally with live-reload, from the project root dir run command: `npm --prefix Homework.Web run dev`
+
+# 14. The products filter has such features:
+ - Live search while typing, but with a debounce of 300ms.
+ - Can search by tokens, which:
+   - Are separated by spaces;
+   - Case-insensitive;
+   - International character insensitive;
+   - Order insensitive;

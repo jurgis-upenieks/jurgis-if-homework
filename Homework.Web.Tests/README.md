@@ -55,12 +55,11 @@ Application tests live in `test/` as `*.test.ts` or `*.test.tsx`.
 They cover the repository's server request isolation and browser client reuse,
 the global overlay's combined query and mutation activity, and its custom logic
 for keeping search editable while blocking and restoring other controls.
-Store-context tests cover provider isolation, retained state, and the helper's
-missing-provider error.
 Catalogue tests cover uncached server retrieval and validation, the inclusive
 discount threshold, global ranking, server-rendered first-page data, JSON page
 requests, title-only search across pages, pagination boundaries, cancellation,
-fresh data on revisits, empty and recoverable error states, and mobile navigation controls.
+fresh data on revisits, immediate form submission, empty and recoverable error states.
+Header tests cover navigation destinations, intrinsic resizing, and keyboard focus.
 The test configuration maps Next.js's `server-only` marker to its bundled empty
 module so server helpers can be exercised alongside the browser components.
 Health checks cover the

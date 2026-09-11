@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ApplicationHeader } from "../application/application-header";
 import { ApplicationScrollArea, ApplicationScrollContent, ApplicationScrollViewport } from "../application/application-scroll-area";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button, Card, Input } from "../ui";
 import { getSearchTokens } from "./search";
 import type { CatalogData, CatalogProps } from "./types";
 import layout from "../application/application.module.css";
@@ -51,12 +49,18 @@ export function Catalog({
   const failed = serverFailed || isError;
   const loading = isFetching || (!data && !failed);
 
+  const applySearch = useCallback((value: string) => {
+    if (getSearchTokens(value).join(" ") === query) return;
+    setAppliedSearch(value.trim());
+    setPage(1);
+  }, [query]);
+
   useEffect(() => {
     if (getSearchTokens(search).join(" ") === query) return;
 
-    const timeout = setTimeout(() => { setAppliedSearch(search.trim()); setPage(1); }, 300);
+    const timeout = setTimeout(() => applySearch(search), 300);
     return () => clearTimeout(timeout);
-  }, [search, query]);
+  }, [search, query, applySearch]);
 
   useLayoutEffect(() => {
     if (results.current) results.current.scrollTop = 0;
@@ -71,9 +75,9 @@ export function Catalog({
           <p className={styles.trending}>
             <strong>{trendingLabel}:</strong>{" "}{data?.trendingTitle ?? (loading ? "Loading…" : "Unavailable")}
           </p>
-          <form role="search" className={styles.search} onSubmit={(event) => event.preventDefault()}>
+          <form role="search" className={styles.search} onSubmit={(event) => { event.preventDefault(); applySearch(search); }}>
             <label className={styles.searchLabel}>
-              <span className={styles.visuallyHidden}>Search {title.toLowerCase()} by title</span>
+              <span className="sr-only">Search {title.toLowerCase()} by title</span>
               <Input
                 ref={searchInput}
                 type="search"
@@ -84,11 +88,12 @@ export function Catalog({
                 allowWhileLoading
                 disabled={!initialData && !data}
                 aria-controls={data && !failed ? `${id}-items` : undefined}
-                onChange={(event) => setSearch(event.target.value)}
+                onValueChange={setSearch}
               />
             </label>
             {search && (
-              <Button variant="ghost" className={styles.control} onClick={() => { setSearch(""); setAppliedSearch(""); setPage(1); searchInput.current?.focus(); }}>
+              <Button type="button" variant="ghost" className={styles.control}
+                onClick={() => { setSearch(""); setAppliedSearch(""); setPage(1); searchInput.current?.focus(); }}>
                 Clear
               </Button>
             )}
@@ -106,7 +111,7 @@ export function Catalog({
           ) : (
             <ApplicationScrollContent render={<ul />} role="list" aria-label={title} className={styles.grid}>
               {items.map((item) => (
-                <li key={item.id} className={styles.listItem}>
+                <li key={`${typeof item.id}:${item.id}`} className={styles.listItem}>
                   <Card title={item.title} className={layout.card}>
                     <p className={styles.details}>
                       <span className={styles.detail}>{item.detail ?? missingDetail}</span>

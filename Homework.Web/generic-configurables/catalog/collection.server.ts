@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getQueryClient } from "@/lib/query-client";
+import { getQueryClient } from "../query";
 import { getSearchTokens, normalizeSearchText } from "./search";
 import type { CatalogData, CatalogPageProps, CollectionRequest, CollectionSource } from "./types";
 

@@ -1,4 +1,4 @@
-@reference "../../app/globals.css";
+@reference "../application/application.css";
 
 @layer components {
   .icon {

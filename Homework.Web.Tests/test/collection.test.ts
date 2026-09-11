@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getQueryClient } from "@/lib/query-client";
+import { getQueryClient } from "@/generic-configurables/query";
 import { loadCollection } from "@/generic-configurables/catalog/collection.server";
 import type { CollectionSource } from "@/generic-configurables/catalog/types";
 

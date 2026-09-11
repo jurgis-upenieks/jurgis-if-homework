@@ -25,11 +25,7 @@ const data: CatalogData = {
   trendingTitle: "Highest rated item outside the current page",
 };
 
-let resizeHeader = vi.fn<() => void>();
-const disconnect = vi.fn();
-
 beforeEach(() => {
-  disconnect.mockClear();
   getPage = createCollectionRoute({ source });
   vi.stubGlobal("fetch", vi.fn(async (input: string | URL, options?: RequestInit) => {
     if (String(input) === source.url) {
@@ -38,13 +34,9 @@ beforeEach(() => {
     return getPage(new Request(input, options));
   }));
   vi.stubGlobal("ResizeObserver", class {
-    constructor(callback: ResizeObserverCallback) {
-      resizeHeader = vi.fn(() => callback([], this));
-    }
-
     observe = vi.fn((element: Element) => { element.getAnimations = vi.fn(() => []); });
     unobserve = vi.fn();
-    disconnect = disconnect;
+    disconnect = vi.fn();
   });
 });
 
@@ -73,23 +65,29 @@ async function loaded() {
   await waitFor(() => expect(screen.getByRole("main").getAttribute("aria-busy")).toBe("false"));
 }
 
-function measureHeader(width: number) {
-  const brand = screen.getByRole("link", { name: "Homework" });
-  const frame = brand.parentElement;
-  const menu = screen.getByText("Menu");
-  const navigation = document.getElementById(menu.getAttribute("aria-controls") ?? "");
-
-  if (!frame || !navigation) throw new Error("Header navigation was not rendered.");
-
-  frame.style.columnGap = "24px";
-  vi.spyOn(frame, "clientWidth", "get").mockReturnValue(width);
-  vi.spyOn(brand, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ width: 200 }));
-  vi.spyOn(navigation, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ width: 64 }));
-  act(() => resizeHeader());
-  return { menu, navigation };
-}
-
 describe("Catalogue interaction", () => {
+  it("submits pending search immediately, resets pagination, and cancels the obsolete debounce", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
+    vi.mocked(fetch).mockClear();
+    vi.mocked(fetch).mockReturnValue(new Promise<Response>(() => {}));
+    vi.useFakeTimers();
+    const input = screen.getByRole<HTMLInputElement>("searchbox");
+    input.focus();
+    fireEvent.change(input, { target: { value: "iPhone" } });
+    await act(async () => vi.advanceTimersByTimeAsync(200));
+    expect(fetch).not.toHaveBeenCalled();
+
+    expect(fireEvent.submit(screen.getByRole("search"))).toBe(false);
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledWith(new URL(`${endpoint}?page=1&search=iphone`, window.location.origin), expect.anything());
+    await act(async () => vi.advanceTimersByTimeAsync(300));
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe("iPhone");
+  });
+
   it("waits for 300 ms after the last keystroke before resetting the page and requesting the search", async () => {
     render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
@@ -284,6 +282,16 @@ describe("Catalogue interaction", () => {
     expect(screen.getByText("Trending product:").parentElement?.textContent).toContain(data.trendingTitle);
   });
 
+  it("keeps numeric and string identifiers distinct when updating cards", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const items = [{ ...data.items[0], id: 1 }, { ...data.items[1], id: "1" }];
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={{ ...data, items, total: 2 }} />);
+    act(() => getQueryClient().setQueryData(["catalog", endpoint, 1, ""], { ...data, items: items.toReversed(), total: 2 }));
+
+    await waitFor(() => expect(screen.getAllByRole("listitem").map((item) => within(item).getByRole("heading").textContent)).toEqual(items.toReversed().map((item) => item.title)));
+    expect(error.mock.calls.flat().join(" ")).not.toMatch(/same key|unique.*key/);
+  });
+
   it("requests title searches across every page, ignoring case and surrounding whitespace", async () => {
     render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
@@ -329,6 +337,7 @@ describe("Catalogue interaction", () => {
     vi.useFakeTimers();
     input.focus();
     fireEvent.change(input, { target: { value: " Í   PH ph  " } });
+    fireEvent.submit(screen.getByRole("search"));
     await act(async () => vi.advanceTimersByTimeAsync(300));
 
     expect(fetch).toHaveBeenCalledTimes(requests);
@@ -502,57 +511,6 @@ describe("Catalogue interaction", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getAllByRole("listitem")).toHaveLength(5);
     expect(fetch).toHaveBeenCalledWith(new URL(`${endpoint}?page=1`, window.location.origin), expect.anything());
-  });
-
-  it("connects the mobile navigation toggle to its expanded state", () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
-    const menu = screen.getByRole("button", { name: "Menu" });
-    expect(menu.getAttribute("aria-expanded")).toBe("false");
-    expect(document.getElementById(menu.getAttribute("aria-controls") ?? "")).toBeTruthy();
-
-    fireEvent.click(menu);
-    expect(menu.getAttribute("aria-expanded")).toBe("true");
-    fireEvent.click(menu);
-    expect(menu.getAttribute("aria-expanded")).toBe("false");
-  });
-
-  it("adapts navigation to measured content and clamp gaps without a screen breakpoint", () => {
-    const { unmount } = render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
-    const { menu, navigation } = measureHeader(280);
-    expect(menu.hasAttribute("hidden")).toBe(false);
-    expect(navigation.getAttribute("aria-hidden")).toBe("true");
-    expect(navigation.hasAttribute("inert")).toBe(true);
-
-    measureHeader(288);
-    expect(menu.hasAttribute("hidden")).toBe(true);
-    expect(navigation.getAttribute("aria-hidden")).toBe("false");
-    expect(navigation.hasAttribute("inert")).toBe(false);
-
-    const frame = screen.getByRole("link", { name: "Homework" }).parentElement;
-    if (!frame) throw new Error("Header was not rendered.");
-    frame.style.columnGap = "32px";
-    act(() => resizeHeader());
-    expect(menu.hasAttribute("hidden")).toBe(false);
-    expect(navigation.getAttribute("aria-hidden")).toBe("true");
-
-    unmount();
-    expect(disconnect).toHaveBeenCalled();
-  });
-
-  it("preserves keyboard focus when navigation expands or collapses after resizing", () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
-    const { menu, navigation } = measureHeader(280);
-    menu.focus();
-
-    measureHeader(400);
-    const products = screen.getByRole("link", { name: "Products" });
-    expect(document.activeElement).toBe(products);
-
-    measureHeader(280);
-    expect(document.activeElement).toBe(products);
-    expect(menu.getAttribute("aria-expanded")).toBe("true");
-    expect(navigation.getAttribute("aria-hidden")).toBe("false");
-    expect(navigation.hasAttribute("inert")).toBe(false);
   });
 
   it("clamps the page when the catalogue shrinks on the server", async () => {

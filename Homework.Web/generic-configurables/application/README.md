@@ -68,6 +68,9 @@ content width, page headings, and bounded scrolling content row.
 The header and title stay visible on both pages. The catalogue toolbar, result
 count, and pagination also stay outside its scrolling list, which returns to
 the top when the page or search changes. Both content regions are keyboard-focusable.
+Nonempty content regions retain a level 7 minimum height. If the viewport cannot
+fit the controls and this minimum, the document can scroll to keep every region
+reachable. Normal viewports retain the existing bounded layout and fixed controls.
 Loading and error content use the same bounded content row.
 The shared Base UI scroll area places its vertical track at the far right, from
 the site header's bottom edge to the visible viewport's bottom edge. The page grid
@@ -105,11 +108,16 @@ accessible above the overlay. With this option, the provider uses native `inert`
 on surrounding content and preserves input focus; otherwise it uses the default
 modal behavior. Other previously focused controls regain focus after loading.
 Product search waits for 300 ms after typing stops before requesting page one,
-and remains editable during requests. Clear cancels pending typing immediately.
+and remains editable during requests. Enter submits pending text immediately.
+Clear cancels pending typing immediately and returns to page one.
 Search requires every whitespace-separated token to appear within the title,
 in any order. Case, Unicode accents, repeated tokens, and extra whitespace do not
 affect matching or trigger a new request for an equivalent search. Original input
 text and product titles remain unchanged for display.
+
+The generic application stylesheet defines the shared Tailwind theme mappings.
+Business-specific global styles only configure the light and dark palettes;
+generic components reference the generic stylesheet directly.
 
 `gap-viewport-gap` and `min-h-viewport-band` also reserve 1.5 times level 9
 before distributing spare dynamic viewport height. Gaps range from level 2 to
