@@ -43,7 +43,7 @@ it.each(site.navigation)("exposes both destinations and marks only $label as the
   expect(links.filter((link) => link.getAttribute("aria-current") === "page")).toEqual([within(navigation).getByRole("link", { name: label })]);
   expect(screen.queryByRole("link", { name: "Home" })).toBeNull();
   expect(screen.getByRole("link", { name: "Skip to content" }).getAttribute("href")).toBe("#content");
-  expect(screen.getByRole("link", { name: "Homework" }).getAttribute("href")).toBe("/");
+  expect(screen.getByRole("link", { name: "Homework2" }).getAttribute("href")).toBe("/");
 
   fireEvent.click(menu);
   expect(menu.getAttribute("aria-expanded")).toBe("false");
@@ -59,7 +59,7 @@ it("does not mark an unrelated route as a current navigation destination", () =>
 });
 
 function measureHeader(width: number, gap = "24px") {
-  const brand = screen.getByRole("link", { name: "Homework" });
+  const brand = screen.getByRole("link", { name: site.name });
   const frame = brand.parentElement;
   const menu = screen.getByText("Menu");
   const navigation = document.getElementById(menu.getAttribute("aria-controls") ?? "");
