@@ -13,7 +13,7 @@
 }
 
 .search {
-  @apply flex w-clamp-9 max-w-full min-w-0 items-center gap-clamp-2;
+  @apply flex w-clamp-9 max-w-full min-w-0 grow items-center gap-clamp-2;
 }
 
 .searchLabel {

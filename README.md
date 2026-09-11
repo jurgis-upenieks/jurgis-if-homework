@@ -88,3 +88,21 @@
    - Case-insensitive;
    - International character insensitive;
    - Order insensitive;
+
+# 15. Technologies stack
+ - TypeScript: strong types for product data and component configuration.
+ - Node.js 24: runs the app server and deployment packaging; npm manages dependencies and scripts.
+ - React and React DOM: product cards, search, pagination, mobile menu, and page hydration.
+ - Next.js App Router: server-rendered products, static Technical details, and `/api/products` and `/health` endpoints.
+ - Zustand: installed, currently unused.
+ - TanStack Query: product fetching, request errors, and the shared loading overlay.
+ - DummyJSON supplies products; Fetch retrieves them server-side and calls `/api/products` client-side.
+ - Tailwind CSS, PostCSS, and CSS Modules: responsive product and documentation layouts using theme and `clamp()` tokens.
+ - shadcn/ui + Base UI: product cards, search input, pagination buttons, loading overlay, and scrollbars.
+ - `next-themes`: applies the site theme, defaulting to light.
+ - `cn`: combines shared component styles with catalogue styles.
+ - ESLint and TypeScript checks: validate app and test code during builds.
+ - Vitest, Vite, React Testing Library, and jsdom: test catalogue behavior, loading, documentation, and packaging.
+ - Git and GitHub: version control.
+ - GitHub Actions: tests, builds, Azure deployment from `main` via OIDC, and production checks.
+ - Microsoft Azure App Service on Linux: hosts the Next.js pages and APIs.
