@@ -7,19 +7,19 @@
   --container-*: initial;
   --breakpoint-*: initial;
   --spacing-0: 0;
-  --spacing-clamp-0: clamp(0.0625rem, min(0.0625rem + 0.025vw, 0.0625rem + 0.0375vh), 0.125rem);
-  --spacing-clamp-1: clamp(0.125rem, min(0.125rem + 0.05vw, 0.125rem + 0.075vh), 0.25rem);
-  --spacing-clamp-2: clamp(0.375rem, min(0.375rem + 0.15vw, 0.375rem + 0.225vh), 0.75rem);
-  --spacing-clamp-3: clamp(0.875rem, min(0.875rem + 0.15vw, 0.875rem + 0.225vh), 1.25rem);
-  --spacing-clamp-4: clamp(1rem, min(1rem + 0.2vw, 1rem + 0.3vh), 1.5rem);
-  --spacing-clamp-5: clamp(1.25rem, min(1.25rem + 0.5vw, 1.25rem + 0.75vh), 2.5rem);
-  --spacing-clamp-6: clamp(2rem, min(2rem + 0.8vw, 2rem + 1.2vh), 4rem);
-  --spacing-clamp-7: clamp(2.75rem, min(2.75rem + 0.7vw, 2.75rem + 1.05vh), 4.5rem);
-  --spacing-clamp-8: clamp(4rem, min(4rem + 1.6vw, 4rem + 2.4vh), 8rem);
-  --spacing-clamp-9: clamp(14rem, min(14rem + 5.6vw, 14rem + 8.4vh), 28rem);
-  --spacing-clamp-10: clamp(48rem, min(48rem + 19.2vw, 48rem + 28.8vh), 96rem);
-  --spacing-viewport-gap: clamp(var(--spacing-clamp-2), (100dvh - var(--spacing-clamp-9)) / 10, var(--spacing-clamp-5));
-  --spacing-viewport-band: clamp(0rem, (100dvh - var(--spacing-clamp-9)) / 4, var(--spacing-clamp-8));
+  --spacing-clamp-0: clamp(0.0625rem, min(0.0625rem + 0.0255vw, 0.0625rem + 0.03825vh), 0.1275rem);
+  --spacing-clamp-1: clamp(0.125rem, min(0.125rem + 0.051vw, 0.125rem + 0.0765vh), 0.255rem);
+  --spacing-clamp-2: clamp(0.1875rem, min(0.1875rem + 0.3vw, 0.1875rem + 0.45vh), 0.765rem);
+  --spacing-clamp-3: clamp(0.875rem, min(0.75rem + 0.28125vw, 0.75rem + 0.421875vh), 1.275rem);
+  --spacing-clamp-4: clamp(1rem, min(0.875rem + 0.375vw, 0.875rem + 0.5625vh), 1.53rem);
+  --spacing-clamp-5: clamp(1rem, min(0.75rem + 1.0625vw, 0.75rem + 1.59375vh), 2.55rem);
+  --spacing-clamp-6: clamp(1.5rem, min(1rem + 1.875vw, 1rem + 2.8125vh), 4.08rem);
+  --spacing-clamp-7: clamp(2.75rem, min(2.25rem + 1.3125vw, 2.25rem + 1.96875vh), 4.59rem);
+  --spacing-clamp-8: clamp(3rem, min(2rem + 3.375vw, 2rem + 5.0625vh), 8.16rem);
+  --spacing-clamp-9: clamp(10rem, min(8rem + 10vw, 8rem + 15vh), 28.56rem);
+  --spacing-clamp-10: clamp(32rem, min(32rem + 38vw, 32rem + 57vh), 97.92rem);
+  --spacing-viewport-gap: clamp(var(--spacing-clamp-2), (100dvh - var(--spacing-clamp-9) * 1.5) / 10, var(--spacing-clamp-5));
+  --spacing-viewport-band: clamp(0rem, (100dvh - var(--spacing-clamp-9) * 1.5) / 4, var(--spacing-clamp-8));
 }
 
 @theme inline {

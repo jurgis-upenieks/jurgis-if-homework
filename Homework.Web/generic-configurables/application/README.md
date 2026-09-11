@@ -2,10 +2,15 @@
 
 `clamps.css` defines the application's eleven size levels. Every level uses
 `clamp(minimum, min(width expression, height expression), maximum)` with rem
-bounds. The smaller viewport expression controls the fluid value. Every level
-includes its rem minimum plus a viewport contribution, so it starts changing
-on phone screens and continues through laptop, desktop, and 4K viewports.
-The bounds and rem contributions scale with the user's font preference.
+bounds. The smaller viewport expression controls the fluid value. Lower spacing
+and layout minima keep resizing clearly visible from phones through desktop
+screens. Maximum bounds are only 2% above the original scale, and the viewport
+contributions keep laptop and desktop sizes close to the original scale. Levels stop
+growing at their caps on larger displays. The rem contribution can sit below the
+minimum so compact screens reach the lower bound instead of starting above it.
+The bounds and rem contributions scale with the user's font preference. Secondary
+text, body text, and touch controls retain minima of 0.875rem, 1rem, and 2.75rem;
+borders and focus outlines retain their existing minima too.
 
 Use one level from 0 to 10 through Tailwind: `gap-clamp-4`, `size-clamp-6`,
 `min-h-clamp-7`, `max-w-clamp-10`, `text-clamp-4`, or `rounded-clamp-2`.
@@ -15,17 +20,17 @@ scales. For other length utilities, use the token directly, for example
 
 | Level | Minimum | Maximum | Typical use |
 | --- | --- | --- | --- |
-| 0 | 0.0625rem | 0.125rem | Borders and small offsets |
-| 1 | 0.125rem | 0.25rem | Focus rings and fine gaps |
-| 2 | 0.375rem | 0.75rem | Compact gaps and corners |
-| 3 | 0.875rem | 1.25rem | Secondary text |
-| 4 | 1rem | 1.5rem | Body text and card gaps |
-| 5 | 1.25rem | 2.5rem | Section gaps and brand text |
-| 6 | 2rem | 4rem | Page headings and brand marks |
-| 7 | 2.75rem | 4.5rem | Interactive control minimum height |
-| 8 | 4rem | 8rem | Header height and button width |
-| 9 | 14rem | 28rem | Card minimum width and search width |
-| 10 | 48rem | 96rem | Page maximum width |
+| 0 | 0.0625rem | 0.1275rem | Borders and small offsets |
+| 1 | 0.125rem | 0.255rem | Focus rings and fine gaps |
+| 2 | 0.1875rem | 0.765rem | Compact gaps and corners |
+| 3 | 0.875rem | 1.275rem | Secondary text |
+| 4 | 1rem | 1.53rem | Body text and card gaps |
+| 5 | 1rem | 2.55rem | Section gaps and brand text |
+| 6 | 1.5rem | 4.08rem | Page headings and brand marks |
+| 7 | 2.75rem | 4.59rem | Interactive control minimum height |
+| 8 | 3rem | 8.16rem | Header height and button width |
+| 9 | 10rem | 28.56rem | Card minimum width and search width |
+| 10 | 32rem | 97.92rem | Page maximum width |
 
 The default Tailwind spacing, text-size, radius, shadow, container, and breakpoint
 scales are disabled. Use the clamp utilities in new components, including empty,
@@ -66,9 +71,10 @@ the page immediately while loading. Escape and outside clicks cannot dismiss it.
 Focus returns to the previously focused control after loading finishes.
 
 `gap-viewport-gap` and `min-h-viewport-band` derive compact layout spacing from
-the existing levels and the dynamic viewport height. Gaps range from level 2 to
-level 5; the header band grows up to level 8 while its contents determine
-its minimum height. These utilities retain the usual spacing on taller screens
+the existing levels and the dynamic viewport height, reserving 1.5 times level 9
+before distributing spare height. Gaps range from level 2 to level 5; the header
+band grows up to level 8 while its contents determine its minimum height.
+These utilities retain the usual spacing on taller screens
 and reserve more room for results on short screens without changing text or
 control sizes.
 

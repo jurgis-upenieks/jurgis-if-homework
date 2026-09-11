@@ -29,8 +29,33 @@ describe("Fluid sizing scale", () => {
     const heights = [240, 320, 480, 600, 900, 1080, 1440, 2160];
 
     for (let index = 1; index < widths.length; index++) {
-      expect(pixels(value, widths[index], 3000)).toBeGreaterThan(pixels(value, widths[index - 1], 3000));
-      expect(pixels(value, 4000, heights[index])).toBeGreaterThan(pixels(value, 4000, heights[index - 1]));
+      expect(pixels(value, widths[index], 3000)).toBeGreaterThanOrEqual(pixels(value, widths[index - 1], 3000));
+      expect(pixels(value, 4000, heights[index])).toBeGreaterThanOrEqual(pixels(value, 4000, heights[index - 1]));
+    }
+  });
+
+  it.each(levels)("level $level changes noticeably across ordinary viewport widths and heights", ({ level, value }) => {
+    const prominent = [2, 5, 6, 8, 9, 10].includes(level);
+    expect(pixels(value, 1440, 900)).toBeGreaterThanOrEqual(pixels(value, 390, 900) * (prominent ? 1.35 : 1.1));
+    expect(pixels(value, 1440, 900)).toBeGreaterThanOrEqual(pixels(value, 1440, 360) * (prominent ? 1.25 : 1.1));
+  });
+
+  it("limits maximum growth to a slight increase over the original scale", () => {
+    const originalMaxima = [0.125, 0.25, 0.75, 1.25, 1.5, 2.5, 4, 4.5, 8, 28, 96];
+
+    for (const { level, value } of levels) {
+      const maximum = pixels(value, 100_000, 100_000);
+      expect(maximum).toBeGreaterThan(originalMaxima[level] * 16);
+      expect(maximum).toBeLessThanOrEqual(originalMaxima[level] * 16 * 1.025);
+    }
+  });
+
+  it.each([
+    { width: 1440, height: 900, original: [1.3375, 2.675, 8.025, 16.025, 18.7, 26.75, 42.8, 53.45, 85.6, 299.6, 1027.2] },
+    { width: 1920, height: 1080, original: [1.405, 2.81, 8.43, 16.43, 19.24, 28.1, 44.96, 55.34, 89.92, 314.72, 1079.04] },
+  ])("keeps rendered sizes close to the original scale at $width × $height", ({ width, height, original }) => {
+    for (const { level, value } of levels) {
+      expect(pixels(value, width, height)).toBeLessThanOrEqual(original[level] * 1.05);
     }
   });
 
@@ -45,14 +70,16 @@ describe("Fluid sizing scale", () => {
     expect(pixels(value, 100_000, 100_000, 32)).toBe(maximum * 32);
   });
 
-  it.each([[320, 568], [568, 320], [768, 1024], [1440, 360], [1440, 900], [2560, 1440]])(
+  it.each([[320, 240], [320, 568], [568, 320], [768, 1024], [1440, 360], [1440, 900], [2560, 1440], [3840, 2160]])(
     "keeps levels ordered, text readable, and controls usable at %i × %i",
     (width, height) => {
-      const sizes = levels.map(({ value }) => pixels(value, width, height));
-      expect(sizes).toEqual(sizes.toSorted((first, second) => first - second));
-      expect(sizes[3]).toBeGreaterThanOrEqual(14);
-      expect(sizes[4]).toBeGreaterThanOrEqual(16);
-      expect(sizes[7]).toBeGreaterThanOrEqual(44);
+      for (const rootSize of [16, 32]) {
+        const sizes = levels.map(({ value }) => pixels(value, width, height, rootSize));
+        expect(sizes).toEqual(sizes.toSorted((first, second) => first - second));
+        expect(sizes[3]).toBeGreaterThanOrEqual(rootSize * 0.875);
+        expect(sizes[4]).toBeGreaterThanOrEqual(rootSize);
+        expect(sizes[7]).toBeGreaterThanOrEqual(rootSize * 2.75);
+      }
     },
   );
 
@@ -75,6 +102,7 @@ describe("Fluid sizing scale", () => {
         expect(pixels(expression, width, 320)).toBeLessThan(pixels(maximum, width, 320));
         expect(pixels(expression, width, 900)).toBe(pixels(maximum, width, 900));
         expect(pixels(expression, width, 320)).toBeLessThan(pixels(expression, width, 390));
+        if (name === "gap") expect(pixels(expression, width, 320)).toBeLessThanOrEqual(pixels(maximum, width, 320) / 2);
       }
 
       expect(pixels(expression, 390, 844)).toBe(pixels(maximum, 390, 844));

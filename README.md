@@ -60,6 +60,7 @@
 # 9. Responsive and mobile-friendly front-end
  - My special signature when developing front-ends, is making fully dynamic responsive spaces (inner, outer, in-between) and sizes in layout with a custom standardized centralized css 'clamp' function system. This way the site contents are looking good and usable on any screen size and aspect ratio.
  - The layout is fully responsive - all layout parts shift and resize as needed.
+ - When user is scrolling the page vertically, all parts except the page contents products list, stay in place (fixed) and are always visible. Only the products list can be scrolled vertically.
 
 # 10. Unit-tests are automatically generated and maintained as needed by codex, because it is instructed to do so by the AGENTS.md custom guideline rules. It does that automatically every time I am asking to implement or change something. This ensures that the unit-test coverage is always guaranteed to be close to 100%.
 

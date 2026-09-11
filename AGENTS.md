@@ -43,6 +43,7 @@
 - 7.4. In styling code MUST NOT use direct hard-coded color codes, sizes, fonts, and other hardcoded stuff, but instead MUST use theme variables, preferably picking from the already available ones.
 - 7.5. In styling code MUST NOT use direct css style attributes, but instead MUST use `@apply` approach.
 - 7.6. Layout should be 100% responsive - looking good and usable on any size and aspect ratio screens and touch screens.
+- 7.7. Never hard-code any spaces (inner, outer, in-between) and sizes, but only use the fully dynamic responsive custom standardized centralized css 'clamp' function system.
 
 ## 8. Templates:
 - 8.1. MUST NOT make a div-soup, div-soup is not allowed.
