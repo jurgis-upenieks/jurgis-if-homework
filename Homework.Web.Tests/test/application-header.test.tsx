@@ -43,7 +43,7 @@ it.each(site.navigation)("exposes both destinations and marks only $label as the
   expect(links.filter((link) => link.getAttribute("aria-current") === "page")).toEqual([within(navigation).getByRole("link", { name: label })]);
   expect(screen.queryByRole("link", { name: "Home" })).toBeNull();
   expect(screen.getByRole("link", { name: "Skip to content" }).getAttribute("href")).toBe("#content");
-  expect(screen.getByRole("link", { name: "Homework2" }).getAttribute("href")).toBe("/");
+  expect(screen.getByRole("link", { name: "Homework" }).getAttribute("href")).toBe("/");
 
   fireEvent.click(menu);
   expect(menu.getAttribute("aria-expanded")).toBe("false");
