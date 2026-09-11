@@ -1,8 +1,17 @@
 @reference "../../app/globals.css";
 
 .overlay {
-  @apply fixed inset-0 z-50 grid place-items-center bg-background/50 opacity-100 outline-none;
+  @apply fixed inset-0 z-40 grid place-items-center bg-background/50 opacity-100 outline-none;
   @apply transition-opacity duration-(--transition-duration-slow) ease-out;
+}
+
+:global(body):has(.overlay:not([hidden])) :global([data-loading-interactive]) {
+  @apply relative z-50;
+}
+
+:global(html):has(.overlay:not([hidden])),
+:global(body):has(.overlay:not([hidden])) {
+  @apply overflow-hidden;
 }
 
 .overlay[data-starting-style],

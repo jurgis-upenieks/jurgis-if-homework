@@ -18,8 +18,11 @@
   --spacing-clamp-8: clamp(3rem, min(2rem + 3.375vw, 2rem + 5.0625vh), 8.16rem);
   --spacing-clamp-9: clamp(10rem, min(8rem + 10vw, 8rem + 15vh), 28.56rem);
   --spacing-clamp-10: clamp(32rem, min(32rem + 38vw, 32rem + 57vh), 97.92rem);
-  --spacing-viewport-gap: clamp(var(--spacing-clamp-2), (100dvh - var(--spacing-clamp-9) * 1.5) / 10, var(--spacing-clamp-5));
-  --spacing-viewport-band: clamp(0rem, (100dvh - var(--spacing-clamp-9) * 1.5) / 4, var(--spacing-clamp-8));
+  --spacing-control-height: max(2.75rem, var(--spacing-clamp-7) * 0.8);
+  --spacing-layout-gap: clamp(var(--spacing-clamp-2), min(0.125rem + 2.25vw, 0.125rem + 3.375vh), var(--spacing-clamp-5));
+  --spacing-content-gap: min(var(--spacing-clamp-4), var(--spacing-layout-gap));
+  --spacing-viewport-gap: clamp(var(--spacing-clamp-2), (100dvh - var(--spacing-clamp-9) * 1.5) / 10, var(--spacing-layout-gap));
+  --spacing-viewport-band: clamp(0rem, (100dvh - var(--spacing-clamp-9) * 1.5) / 4, min(var(--spacing-clamp-8), var(--spacing-layout-gap) * 4));
 }
 
 @theme inline {

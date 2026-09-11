@@ -74,6 +74,21 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it("applies unordered accent-insensitive tokens to direct API requests before pagination", async () => {
+    const rows = products.map((product) => ({ ...product, title: `Ābolu Ķiršu Sula ${product.id}` }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ products: rows })));
+    const url = new URL("http://localhost/api/products?page=2");
+    url.searchParams.set("search", " KIRSU    ABOLU ");
+
+    const response = await GET(new Request(url));
+    const data: CatalogData = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(data).toMatchObject({ total: 26, page: 2, pageSize: 12, trendingTitle: rows[25].title });
+    expect(data.items.map(({ title }) => title)).toEqual(rows.slice(12, 24).map(({ title }) => title));
+  });
+
   it.each(["0", "-1", "1.5", "no", "Infinity", "9007199254740992", ""])("rejects invalid page %s without calling the external service", async (page) => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);

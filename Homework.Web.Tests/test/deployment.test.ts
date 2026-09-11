@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { CatalogData } from "@/generic-configurables/catalog/types";
 
@@ -26,6 +28,27 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     expect(page.querySelector('[role="alert"]')).toBeNull();
   });
 
+  it("serves the README documentation from the standalone package with both navigation destinations", async () => {
+    const response = await fetch(new URL("/technical-details", deploymentUrl), { signal: AbortSignal.timeout(10_000) });
+    expect(response.status).toBe(200);
+    const details = new DOMParser().parseFromString(await response.text(), "text/html");
+    const readme = await readFile(resolve(import.meta.dirname, "../../README.md"), "utf8");
+
+    expect(details.title).toBe("Technical details | Homework");
+    expect(details.querySelector("h1")?.textContent).toBe("Technical details");
+    const titles = [...readme.matchAll(/^# (?:\d+\.\s+)?(.+)$/gm)].map(([, title]) => title);
+    expect([...details.querySelectorAll("main > div > ol > li > h2")].map((heading) => heading.textContent?.trim())).toEqual(titles);
+    expect(details.querySelector('[data-slot="card"]')).toBeNull();
+    expect([...details.querySelectorAll("main code")].map((code) => code.textContent)).toEqual([...readme.matchAll(/`([^`]+)`/g)].map(([, command]) => command));
+
+    for (const document of [page, details]) {
+      const links = [...document.querySelectorAll('nav[aria-label="Main navigation"] a')];
+      expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([["Products", "/"], ["Technical details", "/technical-details"]]);
+    }
+
+    expect(details.querySelector('a[aria-current="page"]')?.textContent).toBe("Technical details");
+  }, 15_000);
+
   it("serves later pages as uncached JSON containing only their own products", async () => {
     const response = await fetch(new URL("/api/products?page=2", deploymentUrl), { signal: AbortSignal.timeout(15_000) });
     expect(response.status).toBe(200);
@@ -38,6 +61,14 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     expect(data.items.length).toBeLessThanOrEqual(data.pageSize);
     expect(data.total).toBeGreaterThan(data.pageSize);
   }, 20_000);
+
+  it("serves Technical details from the build cache without regenerating it", async () => {
+    for (const path of ["/technical-details", "/technical-details?verify=static"]) {
+      const response = await fetch(new URL(path, deploymentUrl), { signal: AbortSignal.timeout(10_000) });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("x-nextjs-cache")).toBe("HIT");
+    }
+  }, 25_000);
 
   it("serves the JavaScript, styles, and fonts required by the browser", async () => {
     const assets = [...page.querySelectorAll("script[src], link[href]")]

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getQueryClient } from "@/lib/query-client";
+import { getSearchTokens, normalizeSearchText } from "./search";
 import type { CatalogData, CatalogPageProps, CollectionRequest, CollectionSource } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -32,7 +33,7 @@ export function loadCollection(source: CollectionSource, { page = 1, pageSize = 
 
       const fields = { id: "id", title: "title", detail: "detail", amount: "amount", rank: "rank", ...source.fields };
       const size = Number.isFinite(pageSize) ? Math.max(1, Math.floor(pageSize)) : 12;
-      const query = search.trim().toLocaleLowerCase("en");
+      const tokens = getSearchTokens(search);
       const data: CatalogData = { items: [], trendingTitle: null, total: 0, page: 1, pageSize: size };
       const ids = new Set<string | number>();
       let highestRank = -Infinity;
@@ -71,7 +72,9 @@ export function loadCollection(source: CollectionSource, { page = 1, pageSize = 
           data.trendingTitle = title;
         }
 
-        if ((!source.minimum || (typeof minimumValue === "number" && minimumValue >= source.minimum.value)) && title.toLocaleLowerCase("en").includes(query)) {
+        const searchableTitle = normalizeSearchText(title);
+
+        if ((!source.minimum || (typeof minimumValue === "number" && minimumValue >= source.minimum.value)) && tokens.every((token) => searchableTitle.includes(token))) {
           data.items.push({ id, title, detail: typeof detail === "string" ? detail.trim() || null : null, amount });
         }
       }

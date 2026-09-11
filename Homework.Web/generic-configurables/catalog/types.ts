@@ -1,5 +1,8 @@
+import type { ApplicationHeaderProps } from "../application";
+
 export type CatalogPageProps = {
   name: string;
+  navigation?: ApplicationHeaderProps["navigation"];
   title: string;
   source: CollectionSource;
   endpoint: string;

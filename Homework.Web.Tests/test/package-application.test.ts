@@ -22,7 +22,10 @@ async function fixture(path: string, content = path) {
 }
 
 it("packages the standalone runtime, hidden Next files, and browser assets without local settings or stale files", async () => {
-  const files = ["server.js", "package.json", "node_modules/next/package.json", ".next/server/app/page.js", ".next/BUILD_ID"];
+  const files = [
+    "server.js", "package.json", "node_modules/next/package.json", ".next/server/app/page.js", ".next/BUILD_ID",
+    ".next/server/app/technical-details.html", ".next/server/app/technical-details.rsc", ".next/prerender-manifest.json",
+  ];
   for (const file of files) await fixture(`.next/standalone/${file}`, file);
   await fixture(".next/static/chunks/app.css", "styles");
   await fixture(".next/static/media/font.woff2", "font");

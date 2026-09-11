@@ -4,6 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme static {
+  --font-mono: Courier, "Courier New", monospace;
   --transition-duration-quick: 100ms;
   --transition-duration-slow: 2s;
 }

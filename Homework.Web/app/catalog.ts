@@ -1,7 +1,8 @@
 import type { CatalogPageProps } from "@/generic-configurables/catalog";
+import { site } from "./site";
 
 export const catalog = {
-  name: "Homework",
+  ...site,
   title: "Products",
   trendingLabel: "Trending product",
   missingDetail: "Brand unavailable",

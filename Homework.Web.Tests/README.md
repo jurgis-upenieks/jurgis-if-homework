@@ -52,14 +52,11 @@ npm --prefix Homework.Web.Tests run build
 ## Tests and dependency resolution
 
 Application tests live in `test/` as `*.test.ts` or `*.test.tsx`.
-They cover TanStack Query cache isolation, browser cache reuse, provider stability,
-shared queries, and the automatic global loading overlay across concurrent queries,
-mutations, background refreshes, retries, failures, and cancellations, plus modal
-focus management, dismissal prevention, and restored interaction afterward. They also
-cover Zustand provider isolation, state retention, selector
-subscriptions, and missing-provider errors.
-Shared control tests cover native form submission, disabled actions, input labels,
-refs and values, semantic cards, and application provider defaults.
+They cover the repository's server request isolation and browser client reuse,
+the global overlay's combined query and mutation activity, and its custom logic
+for keeping search editable while blocking and restoring other controls.
+Store-context tests cover provider isolation, retained state, and the helper's
+missing-provider error.
 Catalogue tests cover uncached server retrieval and validation, the inclusive
 discount threshold, global ranking, server-rendered first-page data, JSON page
 requests, title-only search across pages, pagination boundaries, cancellation,
@@ -72,6 +69,13 @@ the standalone server, browser assets, excluded environment files, stale output,
 and incomplete builds. Optional deployed-app
 checks verify server-rendered products and browser assets; see
 [DEPLOYMENT.md](../DEPLOYMENT.md) for `DEPLOYMENT_URL` usage.
+
+Unit tests must exercise actual repository code and protect behavior worth
+maintaining. Importing a repository wrapper alone does not make a test worthwhile.
+Exclude library defaults, native browser behavior, trivial prop forwarding,
+source formatting, simulated CSS layout, and duplicated assertions. Test fixtures
+should only supply inputs to repository behavior, never become the behavior under
+test. Check responsive sizing in a real browser.
 
 The `@/` alias points to `../Homework.Web` in both Vite and TypeScript.
 Dependencies resolve from the test project's installation. Vite deduplicates

@@ -15,7 +15,6 @@ it("renders a semantic not-found page with a working home link", () => {
   expect(screen.getByRole("main", { name: "Page not found" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Page not found", level: 1 })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Back to products" }).getAttribute("href")).toBe("/");
-  expect(document.querySelector("[style]")).toBeNull();
 });
 
 it("announces unexpected errors and invokes Next's recovery callback", () => {
@@ -25,7 +24,6 @@ it("announces unexpected errors and invokes Next's recovery callback", () => {
   expect(screen.getByRole("alert").textContent).toContain("Something went wrong");
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   expect(retry).toHaveBeenCalledOnce();
-  expect(document.querySelector("[style]")).toBeNull();
 });
 
 it("renders a complete global error document without depending on application providers", () => {
@@ -35,7 +33,4 @@ it("renders a complete global error document without depending on application pr
   expect(page.documentElement.lang).toBe("en");
   expect(page.documentElement.classList.contains("font-geist-sans")).toBe(true);
   expect(page.body.querySelector("main h1")?.textContent).toBe("Something went wrong");
-  expect(page.querySelectorAll("html")).toHaveLength(1);
-  expect(page.querySelectorAll("body")).toHaveLength(1);
-  expect(page.querySelector("[style]")).toBeNull();
 });

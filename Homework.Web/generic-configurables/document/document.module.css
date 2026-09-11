@@ -1,0 +1,46 @@
+@reference "../../app/globals.css";
+
+.sections {
+  @apply grid content-start gap-layout-gap text-clamp-3;
+}
+
+.sections > li {
+  @apply grid gap-content-gap;
+}
+
+.sections h2 {
+  @apply text-clamp-4 font-normal wrap-anywhere;
+}
+
+.sections,
+.paragraphs {
+  @apply list-none [counter-reset:paragraph];
+}
+
+.sections li {
+  @apply min-w-0 [counter-increment:paragraph];
+}
+
+.paragraphs {
+  @apply grid grid-cols-[0_minmax(0,1fr)] gap-x-content-gap gap-y-clamp-2;
+}
+
+.paragraphs > li {
+  @apply col-start-2 grid grid-cols-[auto_minmax(0,1fr)] gap-clamp-2;
+}
+
+.paragraphs > li > :not(.number) {
+  @apply col-start-2 wrap-anywhere;
+}
+
+.number {
+  @apply font-semibold tabular-nums before:content-[counters(paragraph,'.')'.'];
+}
+
+.sections code {
+  @apply font-mono;
+}
+
+.sections a {
+  @apply text-primary underline decoration-(length:--spacing-clamp-0) underline-offset-(--spacing-clamp-1) focus-visible:outline-(length:--spacing-clamp-1);
+}

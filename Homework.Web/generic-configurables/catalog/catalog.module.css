@@ -1,61 +1,5 @@
 @reference "../../app/globals.css";
 
-.page {
-  @apply grid h-dvh grid-rows-[auto_minmax(0,1fr)_0] gap-y-viewport-gap bg-background bg-linear-to-br from-secondary via-background to-accent/40 text-foreground;
-}
-
-.skipLink {
-  @apply sr-only focus:not-sr-only focus:fixed focus:start-clamp-4 focus:top-clamp-4 focus:z-50 focus:flex focus:min-h-clamp-7 focus:items-center focus:gap-clamp-2;
-  @apply focus:bg-background focus:text-foreground focus:outline-(length:--spacing-clamp-1) focus:before:content-[''] focus:after:content-[''];
-}
-
-.header {
-  @apply grid grid-cols-[1fr_minmax(0,var(--spacing-clamp-10))_1fr] gap-x-clamp-4 border-t-(length:--spacing-clamp-1) border-b-(length:--spacing-clamp-0);
-  @apply border-t-primary bg-card/95;
-}
-
-.headerContent {
-  @apply relative col-start-2 flex min-h-viewport-band flex-wrap items-center gap-x-clamp-5 gap-y-clamp-2;
-}
-
-.name {
-  @apply flex min-h-clamp-7 min-w-0 max-w-full shrink-0 items-center gap-clamp-2 text-clamp-5 font-bold tracking-tight text-primary wrap-anywhere;
-  @apply focus-visible:outline-(length:--spacing-clamp-1);
-}
-
-.brandMark {
-  @apply inline-grid size-clamp-6 shrink-0 place-items-center rounded-clamp-2 bg-primary text-clamp-4 text-primary-foreground shadow-clamp-1 shadow-primary/20;
-}
-
-.menuButton {
-  @apply rounded-clamp-2 border-input text-primary;
-}
-
-.navigation {
-  @apply flex w-max max-w-full shrink-0 flex-wrap gap-clamp-2;
-}
-
-.navigation[aria-hidden="true"] {
-  @apply invisible pointer-events-none absolute;
-}
-
-.homeLink {
-  @apply flex min-h-clamp-7 items-center text-clamp-3 font-semibold text-primary underline decoration-chart-2;
-  @apply decoration-(length:--spacing-clamp-1) underline-offset-(--spacing-clamp-2) focus-visible:outline-(length:--spacing-clamp-1);
-}
-
-.main {
-  @apply grid min-h-0 w-full max-w-clamp-10 grid-cols-[0_minmax(0,1fr)_0] grid-rows-[auto_auto_minmax(0,1fr)] justify-self-center gap-x-clamp-5 gap-y-viewport-gap;
-}
-
-.main > * {
-  @apply col-start-2 min-w-0;
-}
-
-.heading {
-  @apply text-clamp-6 leading-tight font-bold tracking-tight wrap-anywhere;
-}
-
 .toolbar {
   @apply flex flex-wrap items-center gap-viewport-gap;
 }
@@ -85,19 +29,11 @@
 }
 
 .grid {
-  @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,var(--spacing-clamp-9)),1fr))] content-start items-start gap-clamp-5 empty:hidden;
-}
-
-.content {
-  @apply min-h-0 overflow-y-auto overscroll-y-contain focus-visible:outline-(length:--spacing-clamp-1) focus-visible:-outline-offset-(--spacing-clamp-1);
+  @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,var(--spacing-clamp-9)),1fr))] content-start items-start gap-layout-gap empty:hidden;
 }
 
 .listItem {
   @apply min-w-0;
-}
-
-.card {
-  @apply rounded-clamp-3 ring-border shadow-clamp-2 shadow-primary/5;
 }
 
 .cardTitle {
@@ -116,12 +52,16 @@
   @apply min-w-0 text-clamp-4 font-bold text-primary tabular-nums wrap-anywhere;
 }
 
+.paginationRow {
+  @apply grid grid-cols-[minmax(min-content,1fr)_minmax(0,max-content)_minmax(0,1fr)] items-center gap-clamp-2 self-start;
+}
+
 .resultCount {
-  @apply self-start text-clamp-3 font-medium text-muted-foreground wrap-anywhere;
+  @apply min-w-0 text-clamp-3 font-medium text-muted-foreground wrap-break-word only:col-span-full only:wrap-anywhere;
 }
 
 .pagination {
-  @apply flex flex-wrap items-center justify-center gap-clamp-2;
+  @apply col-start-2 flex min-w-0 flex-wrap items-center justify-center gap-clamp-2;
 }
 
 .control {

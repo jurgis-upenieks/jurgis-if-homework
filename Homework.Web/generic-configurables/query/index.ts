@@ -1,2 +1,2 @@
 export { getQueryClient } from "./query-client";
-export { QueryProvider } from "./query-provider";
+export { QueryProvider, useLoadingInteraction } from "./query-provider";

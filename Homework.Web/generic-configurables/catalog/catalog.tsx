@@ -2,28 +2,28 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import Link from "next/link";
+import { ApplicationHeader } from "../application/application-header";
+import { ApplicationScrollArea, ApplicationScrollContent, ApplicationScrollViewport } from "../application/application-scroll-area";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getSearchTokens } from "./search";
 import type { CatalogData, CatalogProps } from "./types";
+import layout from "../application/application.module.css";
 import styles from "./catalog.module.css";
 
-export function Catalog({ name, title, endpoint, trendingLabel = "Trending item", missingDetail = "Not specified", currency = "EUR", data: initialData, failed: initialFailed = false }: CatalogProps) {
+export function Catalog({
+  name, title, endpoint, navigation = [{ label: title, href: "/" }], trendingLabel = "Trending item", missingDetail = "Not specified",
+  currency = "EUR", data: initialData, failed: initialFailed = false,
+}: CatalogProps) {
   const id = useId();
   const searchInput = useRef<HTMLInputElement>(null);
-  const results = useRef<HTMLUListElement>(null);
-  const headerContent = useRef<HTMLDivElement>(null);
-  const brand = useRef<HTMLAnchorElement>(null);
-  const navigation = useRef<HTMLElement>(null);
-  const menuButton = useRef<HTMLButtonElement>(null);
-  const restoreNavigationFocus = useRef(false);
+  const results = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [serverFailed, setServerFailed] = useState(initialFailed);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [compactNavigation, setCompactNavigation] = useState(true);
-  const query = search.trim().toLocaleLowerCase("en");
+  const query = getSearchTokens(appliedSearch).join(" ");
   const { data, isError, isFetching, refetch } = useQuery({
     queryKey: ["catalog", endpoint, page, query],
     queryFn: async ({ signal }): Promise<CatalogData> => {
@@ -51,75 +51,23 @@ export function Catalog({ name, title, endpoint, trendingLabel = "Trending item"
   const failed = serverFailed || isError;
   const loading = isFetching || (!data && !failed);
 
+  useEffect(() => {
+    if (getSearchTokens(search).join(" ") === query) return;
+
+    const timeout = setTimeout(() => { setAppliedSearch(search.trim()); setPage(1); }, 300);
+    return () => clearTimeout(timeout);
+  }, [search, query]);
+
   useLayoutEffect(() => {
     if (results.current) results.current.scrollTop = 0;
   }, [page, currentPage, query]);
 
-  useEffect(() => {
-    const headerElement = headerContent.current;
-    const brandElement = brand.current;
-    const navigationElement = navigation.current;
-
-    if (!headerElement || !brandElement || !navigationElement) return;
-
-    const observer = new ResizeObserver(() => {
-      const gap = Number.parseFloat(getComputedStyle(headerElement).columnGap);
-      const requiredWidth = brandElement.getBoundingClientRect().width + navigationElement.getBoundingClientRect().width + gap;
-      const compact = requiredWidth > headerElement.clientWidth;
-
-      if (compact && navigationElement.contains(document.activeElement)) setMenuOpen(true);
-      restoreNavigationFocus.current = !compact && document.activeElement === menuButton.current;
-      setCompactNavigation(compact);
-    });
-
-    observer.observe(headerElement);
-    observer.observe(brandElement);
-    observer.observe(navigationElement);
-    return () => observer.disconnect();
-  }, []);
-
-  useLayoutEffect(() => {
-    if (restoreNavigationFocus.current) {
-      navigation.current?.querySelector<HTMLAnchorElement>("a[href]")?.focus();
-      restoreNavigationFocus.current = false;
-    }
-  }, [compactNavigation]);
-
   return (
-    <div className={styles.page}>
-      <a href={`#${id}-main`} className={styles.skipLink}>Skip to content</a>
-      <header className={styles.header}>
-        <div ref={headerContent} className={styles.headerContent}>
-          <Link ref={brand} className={styles.name} href="/">
-            <span aria-hidden="true" className={styles.brandMark}>{name.charAt(0)}</span>
-            {name}
-          </Link>
-          <Button
-            ref={menuButton}
-            variant="outline"
-            className={styles.menuButton}
-            hidden={!compactNavigation}
-            aria-expanded={menuOpen}
-            aria-controls={`${id}-navigation`}
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            Menu
-          </Button>
-          <nav
-            ref={navigation}
-            id={`${id}-navigation`}
-            aria-label="Main navigation"
-            aria-hidden={compactNavigation && !menuOpen}
-            inert={compactNavigation && !menuOpen}
-            className={styles.navigation}
-          >
-            <Link className={styles.homeLink} href="/" aria-current="page">Home</Link>
-          </nav>
-        </div>
-      </header>
-      <main id={`${id}-main`} tabIndex={-1} className={styles.main} aria-busy={loading}>
-        <h1 className={styles.heading}>{title}</h1>
-        <div className={styles.toolbar}>
+    <ApplicationScrollArea>
+      <ApplicationHeader name={name} navigation={navigation} contentId={`${id}-main`} />
+      <main id={`${id}-main`} tabIndex={-1} className={layout.main} aria-busy={loading}>
+        <header className={styles.toolbar}>
+          <h1 className={layout.heading}>{title}</h1>
           <p className={styles.trending}>
             <strong>{trendingLabel}:</strong>{" "}{data?.trendingTitle ?? (loading ? "Loading…" : "Unavailable")}
           </p>
@@ -133,32 +81,33 @@ export function Catalog({ name, title, endpoint, trendingLabel = "Trending item"
                 placeholder="Search…"
                 className={styles.searchInput}
                 value={search}
+                allowWhileLoading
                 disabled={!initialData && !data}
                 aria-controls={data && !failed ? `${id}-items` : undefined}
-                onChange={(event) => { setSearch(event.target.value); setPage(1); }}
+                onChange={(event) => setSearch(event.target.value)}
               />
             </label>
             {search && (
-              <Button variant="ghost" className={styles.control} onClick={() => { setSearch(""); setPage(1); searchInput.current?.focus(); }}>
+              <Button variant="ghost" className={styles.control} onClick={() => { setSearch(""); setAppliedSearch(""); setPage(1); searchInput.current?.focus(); }}>
                 Clear
               </Button>
             )}
           </form>
-        </div>
-        {loading && !data ? (
-          <p role="status" className={styles.content}>Loading {title.toLowerCase()}…</p>
-        ) : failed ? (
-          <section role="alert" tabIndex={0} className={`${styles.message} ${styles.content}`}>
-            <h2 className={styles.cardTitle}>We couldn’t load {title.toLowerCase()}.</h2>
-            <p>Please try again in a moment.</p>
-            <Button variant="outline" className={styles.control} onClick={() => { if (serverFailed) setServerFailed(false); else void refetch(); }}>Try again</Button>
-          </section>
-        ) : (
-          <>
-            <ul ref={results} id={`${id}-items`} role="list" aria-label={title} tabIndex={0} className={`${styles.grid} ${styles.content}`}>
+        </header>
+        <ApplicationScrollViewport ref={results} id={`${id}-items`} role="region" aria-label={title} tabIndex={items.length || failed ? 0 : -1} className={layout.content}>
+          {loading && !data ? (
+            <ApplicationScrollContent render={<p />} role="status">Loading {title.toLowerCase()}…</ApplicationScrollContent>
+          ) : failed ? (
+            <ApplicationScrollContent render={<section />} role="alert" className={styles.message}>
+              <h2 className={styles.cardTitle}>We couldn’t load {title.toLowerCase()}.</h2>
+              <p>Please try again in a moment.</p>
+              <Button variant="outline" className={styles.control} onClick={() => { if (serverFailed) setServerFailed(false); else void refetch(); }}>Try again</Button>
+            </ApplicationScrollContent>
+          ) : (
+            <ApplicationScrollContent render={<ul />} role="list" aria-label={title} className={styles.grid}>
               {items.map((item) => (
                 <li key={item.id} className={styles.listItem}>
-                  <Card title={item.title} className={styles.card}>
+                  <Card title={item.title} className={layout.card}>
                     <p className={styles.details}>
                       <span className={styles.detail}>{item.detail ?? missingDetail}</span>
                       <span className={styles.price}>{formatter.format(item.amount)}</span>
@@ -166,10 +115,14 @@ export function Catalog({ name, title, endpoint, trendingLabel = "Trending item"
                   </Card>
                 </li>
               ))}
-            </ul>
+            </ApplicationScrollContent>
+          )}
+        </ApplicationScrollViewport>
+        {data && !failed && (
+          <footer className={styles.paginationRow}>
             <p role="status" aria-live="polite" aria-atomic="true" className={styles.resultCount}>
               {loading ? `Loading ${title.toLowerCase()}…` : total ? `${start + 1}–${start + items.length} of ${total} ${title.toLowerCase()}` :
-                query ? `No ${title.toLowerCase()} match “${search.trim()}”.` : `No ${title.toLowerCase()} available.`}
+                query ? `No ${title.toLowerCase()} match “${appliedSearch}”.` : `No ${title.toLowerCase()} available.`}
             </p>
             {pageCount > 1 && (
               <nav aria-label="Pagination" className={styles.pagination}>
@@ -180,9 +133,9 @@ export function Catalog({ name, title, endpoint, trendingLabel = "Trending item"
                   onClick={() => setPage(currentPage + 1)}>Next</Button>
               </nav>
             )}
-          </>
+          </footer>
         )}
       </main>
-    </div>
+    </ApplicationScrollArea>
   );
 }

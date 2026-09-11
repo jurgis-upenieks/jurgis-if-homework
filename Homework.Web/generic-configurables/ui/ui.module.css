@@ -1,8 +1,12 @@
 @reference "../../app/globals.css";
 
 @layer components {
+  .icon {
+    @apply size-clamp-4 shrink-0;
+  }
+
   .button {
-    @apply inline-flex min-h-clamp-7 max-w-full shrink-0 items-center justify-center gap-clamp-2 rounded-clamp-2;
+    @apply inline-flex min-h-control-height max-w-full shrink-0 items-center justify-center gap-clamp-2 rounded-clamp-2;
     @apply border-(length:--spacing-clamp-0) border-transparent bg-primary text-clamp-3 font-medium text-primary-foreground;
     @apply text-center whitespace-normal outline-none select-none wrap-anywhere before:content-[''] after:content-[''] hover:bg-primary/80;
     @apply focus-visible:border-ring focus-visible:ring-(length:--spacing-clamp-1) focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50;
@@ -20,7 +24,7 @@
   }
 
   .input {
-    @apply grid min-h-clamp-7 w-full min-w-0 grid-cols-[0_minmax(0,1fr)_0] gap-x-clamp-2 rounded-clamp-2;
+    @apply grid min-h-control-height w-full min-w-0 grid-cols-[0_minmax(0,1fr)_0] gap-x-clamp-2 rounded-clamp-2;
     @apply border-(length:--spacing-clamp-0) border-input bg-transparent text-clamp-4;
     @apply focus-within:border-ring focus-within:ring-(length:--spacing-clamp-1) focus-within:ring-primary/30 dark:bg-input/30;
     @apply has-disabled:cursor-not-allowed has-disabled:bg-input/50 has-disabled:opacity-50 dark:has-disabled:bg-input/80;
@@ -29,16 +33,16 @@
   }
 
   .inputControl {
-    @apply col-start-2 h-full min-h-clamp-7 w-full min-w-0 bg-transparent text-clamp-4 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed;
+    @apply col-start-2 h-full min-h-0 w-full min-w-0 bg-transparent text-clamp-4 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed;
   }
 
   .card {
-    @apply grid min-w-0 grid-cols-[0_minmax(0,1fr)_0] grid-rows-[0_auto_0] gap-clamp-4 overflow-hidden rounded-clamp-2;
-    @apply bg-card text-clamp-3 text-card-foreground ring-(length:--spacing-clamp-0) ring-foreground/10;
+    @apply grid min-w-0 grid-cols-[0_minmax(0,1fr)_0] grid-rows-[0_auto_0] gap-content-gap overflow-hidden rounded-clamp-2;
+    @apply bg-card text-clamp-3 text-card-foreground ring-(length:--spacing-clamp-0) ring-foreground/10 ring-inset;
   }
 
   .cardContent {
-    @apply col-start-2 row-start-2 flex min-w-0 flex-col gap-clamp-4;
+    @apply col-start-2 row-start-2 flex min-w-0 flex-col gap-content-gap;
   }
 
   .cardTitle {
