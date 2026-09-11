@@ -150,7 +150,7 @@ describe("Catalogue interaction", () => {
 
     expect(screen.queryByRole("progressbar")).toBeNull();
     expect(screen.getByRole("heading", { name: "iPhone X" })).toBeTruthy();
-    expect(screen.getByRole("status").textContent).toBe("1–1 of 1 products");
+    expect(screen.getByRole("status").textContent).toBe("1–1 of 1");
     expect(document.activeElement).toBe(input);
     expect(screen.getByRole("list").closest("[inert]")).toBeNull();
   });
@@ -189,7 +189,7 @@ describe("Catalogue interaction", () => {
 
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.queryByRole("heading", { name: "iPhone X" })).toBeNull();
-    expect(screen.getByRole("status").textContent).toBe("1–2 of 5 products");
+    expect(screen.getByRole("status").textContent).toBe("1–2 of 5");
     expect(getQueryClient().getQueryCache().getAll()).toHaveLength(1);
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -231,7 +231,7 @@ describe("Catalogue interaction", () => {
 
     expect(fetch).toHaveBeenLastCalledWith(new URL(`${endpoint}?page=1`, window.location.origin), expect.objectContaining({ cache: "no-store" }));
     expect(screen.getByRole("heading", { name: "Updated title" })).toBeTruthy();
-    expect(screen.getByRole("status").textContent).toBe("1–1 of 1 products");
+    expect(screen.getByRole("status").textContent).toBe("1–1 of 1");
   });
 
   it("retries failed page requests without a document reload", async () => {
@@ -262,7 +262,7 @@ describe("Catalogue interaction", () => {
     expect(signal?.aborted).toBe(true);
     await act(async () => pending.resolve(Response.json({ ...data, items: data.items.slice(2, 4), page: 2, pageSize: 2 })));
 
-    expect(screen.getByRole("status").textContent).toBe("1–2 of 2 products");
+    expect(screen.getByRole("status").textContent).toBe("1–2 of 2");
     expect(screen.getAllByRole("listitem").map((item) => within(item).getByRole("heading").textContent)).toEqual(["iPhone 9", "iPhone X"]);
   });
 
@@ -304,7 +304,7 @@ describe("Catalogue interaction", () => {
     expect(screen.getByRole("heading", { name: "iPhone X" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Laptop" })).toBeNull();
     expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
-    expect(screen.getByRole("status").textContent).toBe("1–2 of 2 products");
+    expect(screen.getByRole("status").textContent).toBe("1–2 of 2");
     expect(screen.getByText("Trending item:").parentElement?.textContent).toContain("Laptop");
     expect(fetch).toHaveBeenCalledWith(new URL(`${endpoint}?page=1&search=iphon`, window.location.origin), expect.objectContaining({ cache: "no-store" }));
   });
@@ -320,7 +320,7 @@ describe("Catalogue interaction", () => {
     expect(document.activeElement).toBe(input);
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
     expect(screen.getByRole("heading", { name: "iPhone X" })).toBeTruthy();
-    expect(screen.getByRole("status").textContent).toBe("1–1 of 1 products");
+    expect(screen.getByRole("status").textContent).toBe("1–1 of 1");
     expect(fetch).toHaveBeenCalledWith(new URL(`${endpoint}?page=1&search=iphon+x`, window.location.origin), expect.anything());
   });
 
@@ -362,7 +362,7 @@ describe("Catalogue interaction", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
     expect(screen.getByRole("heading", { name: "Laptop" })).toBeTruthy();
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Next" }).disabled).toBe(true);
-    expect(screen.getByRole("status").textContent).toBe("5–5 of 5 products");
+    expect(screen.getByRole("status").textContent).toBe("5–5 of 5");
 
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
     await loaded();
@@ -523,7 +523,7 @@ describe("Catalogue interaction", () => {
 
     expect(screen.getByText("Page 2 of 2")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "iPhone X" })).toBeTruthy();
-    expect(screen.getByRole("status").textContent).toBe("3–3 of 3 products");
+    expect(screen.getByRole("status").textContent).toBe("3–3 of 3");
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
     await loaded();
     expect(screen.getByText("Page 1 of 3")).toBeTruthy();

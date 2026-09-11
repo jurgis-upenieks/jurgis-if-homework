@@ -28,7 +28,7 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     expect(content.props.source).toBeUndefined();
     expect(page.querySelectorAll("li")).toHaveLength(12);
     expect(page.querySelector("li h2")?.textContent).toBe("Product 0");
-    expect(page.body.textContent).toContain("1–12 of 26 products");
+    expect(page.querySelector('[role="status"]')?.textContent).toBe("1–12 of 26");
     expect(page.body.textContent).not.toContain("Product 12");
     expect(fetch).toHaveBeenCalledOnce();
   });

@@ -124,7 +124,7 @@ export function Catalog({
         {data && !failed && (
           <footer className={styles.paginationRow}>
             <p role="status" aria-live="polite" aria-atomic="true" className={styles.resultCount}>
-              {loading ? `Loading ${title.toLowerCase()}…` : total ? `${start + 1}–${start + items.length} of ${total} ${title.toLowerCase()}` :
+              {loading ? `Loading ${title.toLowerCase()}…` : total ? `${start + 1}–${start + items.length} of ${total}` :
                 query ? `No ${title.toLowerCase()} match “${appliedSearch}”.` : `No ${title.toLowerCase()} available.`}
             </p>
             {pageCount > 1 && (
