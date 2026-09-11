@@ -2,6 +2,7 @@ export type CatalogPageProps = {
   name: string;
   title: string;
   source: CollectionSource;
+  endpoint: string;
   trendingLabel?: string;
   missingDetail?: string;
   pageSize?: number;
@@ -26,9 +27,19 @@ export type CatalogItem = {
 export type CatalogData = {
   items: CatalogItem[];
   trendingTitle: string | null;
+  total: number;
+  page: number;
+  pageSize: number;
 };
 
-export type CatalogProps = Omit<CatalogPageProps, "source"> & {
+export type CatalogProps = Omit<CatalogPageProps, "source" | "pageSize"> & {
   data?: CatalogData;
   failed?: boolean;
+};
+
+export type CollectionRequest = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  signal?: AbortSignal;
 };

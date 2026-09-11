@@ -1,9 +1,16 @@
 # Deploy to Azure App Service
 
 This project runs as one Node.js 24 application on Azure App Service for Linux.
-Next.js retrieves catalogue data and renders HTML on the server. Search,
-pagination, and menus run in the browser. The deployment includes both sides
-and retains server-side rendering.
+Next.js retrieves fresh catalogue data and renders the first page's products in
+the initial HTML. Search and pagination request only the selected page's JSON
+from `/api/products`. Menus and rendering of subsequent pages run in the browser.
+The deployment includes both sides and retains server-side rendering.
+
+The server fetches the external collection on every catalogue request to apply
+the discount filter, search titles, and find the global highest-rated product.
+Only the requested page and its pagination metadata are sent to the browser.
+Upstream fetches and JSON responses use `no-store`; product data is not cached
+between server requests.
 
 GitHub builds and tests each push to `main`, then deploys the verified ZIP to
 production. Pull requests run the same checks without deploying. The application
@@ -30,8 +37,7 @@ In [Azure Portal](https://portal.azure.com), open **Create a resource → Web Ap
 | App Service plan | **Basic B1** for a small production app |
 
 Select **Review + create → Create → Go to resource**. B1 is a paid plan and
-continues billing while idle. Keep one instance for this application's local
-Next.js cache. Under **Settings → Configuration → General settings**, enable
+continues billing while idle. Under **Settings → Configuration → General settings**, enable
 **Always On**. Keep **HTTPS Only** enabled.
 
 Under **Settings → Configuration → General settings**, set **Startup Command**
@@ -48,8 +54,8 @@ instead starts the server inside its `build/` directory.
 Under **Settings → Environment variables → App settings**, set
 `SCM_DO_BUILD_DURING_DEPLOYMENT` to `false`: GitHub supplies an already-built
 application. Leave `WEBSITE_RUN_FROM_PACKAGE` unset, removing it if you are
-reusing an app that has it. ZIP deployment extracts the files so that Next.js
-can write its fetch cache. Save the settings.
+reusing an app that has it. ZIP deployment extracts the standalone application
+files. Save the settings.
 
 ### 2. Connect GitHub using Deployment Center
 
@@ -146,7 +152,7 @@ HOSTNAME=0.0.0.0 node server.js
 ```
 
 Azure supplies `PORT` and handles public HTTPS. The server uses Azure's port and
-keeps a writable, disposable Next.js fetch cache. The build runs on Linux with
+does not cache catalogue data. The build runs on Linux with
 Node.js 24 so its native dependencies match App Service. Do not upload a
 locally built macOS or Windows package to the Linux app.
 
@@ -207,10 +213,10 @@ Ordinary unit tests skip the HTTP checks when `DEPLOYMENT_URL` is unset.
   extracts and deploys prebuilt files; server-side rebuilds must stay disabled.
 - The build needs access to npm and Google Fonts. Runtime needs outbound HTTPS
   to `dummyjson.com`. Catalogue retrieval times out after ten seconds and
-  revalidates cached responses after five minutes.
+  always requests fresh product data without caching it.
 - `/health` deliberately does not call DummyJSON. An upstream failure can leave
   `/health` successful while the catalogue and its HTTP test fail. The existing
-  **Try again** button reloads the page.
+  **Try again** button retries the current JSON data request.
 - Deployment replaces files and restarts the app. A single B1 instance can have
   a brief interruption during deployment. This setup does not provide staging
   slots or automatic rollback.

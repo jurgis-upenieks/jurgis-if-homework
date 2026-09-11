@@ -22,19 +22,20 @@ afterEach(() => {
 });
 
 describe("Server catalogue retrieval", () => {
-  it("fetches the entire selected collection and includes discounts of exactly 10%", async () => {
+  it("fetches fresh source data and includes discounts of exactly 10%", async () => {
     const fetch = vi.fn().mockResolvedValue(Response.json({ products }));
     vi.stubGlobal("fetch", fetch);
 
     const result = await loadCollection(source);
 
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch).toHaveBeenCalledWith(source.url, expect.objectContaining({ next: { revalidate: 300 }, signal: expect.any(AbortSignal) }));
+    expect(fetch).toHaveBeenCalledWith(source.url, { cache: "no-store", signal: expect.any(AbortSignal) });
     expect(result.items).toEqual([
       { id: 2, title: "Exact threshold", detail: "Second", amount: 10 },
       { id: 3, title: "Above threshold", detail: null, amount: 0 },
     ]);
     expect(result.trendingTitle).toBe("Below threshold");
+    expect(result).toMatchObject({ total: 2, page: 1, pageSize: 12 });
   });
 
   it("finds the global highest rating beyond the default API page and resolves ties in source order", async () => {
@@ -43,26 +44,27 @@ describe("Server catalogue retrieval", () => {
 
     const result = await loadCollection(source);
 
-    expect(result.items).toHaveLength(40);
+    expect(result.items).toHaveLength(12);
+    expect(result.total).toBe(40);
     expect(result.trendingTitle).toBe("Product 35");
   });
 
-  it("shares fresh retrievals through the existing query client", async () => {
-    const fetch = vi.fn().mockResolvedValue(Response.json({ products }));
+  it("fetches again on every request and returns changes from the external service", async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ products })).mockResolvedValueOnce(Response.json({ products: [] }));
     vi.stubGlobal("fetch", fetch);
 
     const first = await loadCollection(source);
     const second = await loadCollection(source);
 
-    expect(second).toEqual(first);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(first.total).toBe(2);
+    expect(second).toEqual({ items: [], trendingTitle: null, total: 0, page: 1, pageSize: 12 });
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("handles empty collections and missing or blank optional details", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(Response.json({ products: [] })).mockResolvedValueOnce(Response.json({ products: [{ ...products[1], brand: " " }] })));
 
-    expect(await loadCollection(source)).toEqual({ items: [], trendingTitle: null });
-    getQueryClient().clear();
+    expect(await loadCollection(source)).toEqual({ items: [], trendingTitle: null, total: 0, page: 1, pageSize: 12 });
     expect((await loadCollection(source)).items[0].detail).toBeNull();
   });
 
@@ -72,7 +74,57 @@ describe("Server catalogue retrieval", () => {
     expect(await loadCollection({ url: "https://example.test/entries", collection: "entries" })).toEqual({
       items: [{ id: "entry", title: "Entry", detail: "Label", amount: 5 }],
       trendingTitle: "Entry",
+      total: 1,
+      page: 1,
+      pageSize: 12,
     });
+  });
+
+  it("filters before pagination and returns only the requested page", async () => {
+    const rows = Array.from({ length: 30 }, (_, id) => ({ ...products[1], id, title: `Product ${id}`, discountPercentage: id % 2 ? 10 : 0 }));
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => Response.json({ products: rows })));
+
+    const first = await loadCollection(source);
+    const second = await loadCollection(source, { page: 2 });
+
+    expect(first.items.map(({ id }) => id)).toEqual([1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23]);
+    expect(second.items.map(({ id }) => id)).toEqual([25, 27, 29]);
+    expect(second).toMatchObject({ total: 15, page: 2, pageSize: 12, trendingTitle: "Product 0" });
+  });
+
+  it("searches titles across all pages before slicing without changing the global ranking", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => Response.json({ products })));
+
+    const result = await loadCollection(source, { search: "  THRESHOLD  ", page: 2, pageSize: 1 });
+
+    expect(result.items.map(({ title }) => title)).toEqual(["Above threshold"]);
+    expect(result).toMatchObject({ total: 2, page: 2, pageSize: 1, trendingTitle: "Below threshold" });
+    expect((await loadCollection(source, { search: "Second" })).total).toBe(0);
+    expect((await loadCollection(source, { search: "   " })).total).toBe(2);
+  });
+
+  it("clamps pages after the source shrinks and handles empty search results", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => Response.json({ products })));
+
+    expect(await loadCollection(source, { page: 10, pageSize: 1 })).toMatchObject({ page: 2, total: 2, items: [{ id: 3 }] });
+    expect(await loadCollection(source, { page: 10, search: "absent" })).toMatchObject({ page: 1, total: 0, items: [] });
+  });
+
+  it.each([0, -2, 1.9, Infinity, NaN])("normalizes the configured page size %s", async (pageSize) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ products })));
+
+    expect((await loadCollection(source, { pageSize })).pageSize).toBe(Number.isFinite(pageSize) ? 1 : 12);
+  });
+
+  it("passes cancellation from the incoming request to the upstream fetch", async () => {
+    const controller = new AbortController();
+    const fetch = vi.fn().mockImplementation(async () => Response.json({ products }));
+    vi.stubGlobal("fetch", fetch);
+    await loadCollection(source, { signal: controller.signal });
+
+    controller.abort();
+
+    expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
   });
 
   it("rejects HTTP failures and network failures", async () => {

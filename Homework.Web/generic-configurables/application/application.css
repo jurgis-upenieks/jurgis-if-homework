@@ -3,6 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme static {
+  --transition-duration-quick: 100ms;
+  --transition-duration-slow: 2s;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { CatalogProps } from "./types";
+import type { CatalogData, CatalogProps } from "./types";
 import styles from "./catalog.module.css";
 
-export function Catalog({ name, title, trendingLabel = "Trending item", missingDetail = "Not specified", pageSize = 12, currency = "EUR", data, failed = false }: CatalogProps) {
+export function Catalog({ name, title, endpoint, trendingLabel = "Trending item", missingDetail = "Not specified", currency = "EUR", data: initialData, failed: initialFailed = false }: CatalogProps) {
   const id = useId();
   const searchInput = useRef<HTMLInputElement>(null);
+  const results = useRef<HTMLUListElement>(null);
   const headerContent = useRef<HTMLDivElement>(null);
   const brand = useRef<HTMLAnchorElement>(null);
   const navigation = useRef<HTMLElement>(null);
@@ -18,17 +20,40 @@ export function Catalog({ name, title, trendingLabel = "Trending item", missingD
   const restoreNavigationFocus = useRef(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [serverFailed, setServerFailed] = useState(initialFailed);
   const [menuOpen, setMenuOpen] = useState(false);
   const [compactNavigation, setCompactNavigation] = useState(true);
   const query = search.trim().toLocaleLowerCase("en");
-  const items = data?.items.filter((item) => item.title.toLocaleLowerCase("en").includes(query)) ?? [];
-  const size = Number.isFinite(pageSize) ? Math.max(1, Math.floor(pageSize)) : 12;
-  const pageCount = Math.max(1, Math.ceil(items.length / size));
-  const currentPage = Math.min(page, pageCount);
-  const start = (currentPage - 1) * size;
-  const visibleItems = items.slice(start, start + size);
+  const { data, isError, isFetching, refetch } = useQuery({
+    queryKey: ["catalog", endpoint, page, query],
+    queryFn: async ({ signal }): Promise<CatalogData> => {
+      const url = new URL(endpoint, window.location.origin);
+      url.searchParams.set("page", String(page));
+      if (query) url.searchParams.set("search", query);
+      const response = await fetch(url, { signal, cache: "no-store" });
+
+      if (!response.ok) throw new Error(`Catalogue request failed (${response.status}).`);
+      return response.json();
+    },
+    initialData: page === 1 && !query ? initialData : undefined,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+    refetchOnMount: false,
+    retry: false,
+    enabled: !serverFailed,
+  });
+  const items = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const pageCount = data ? Math.max(1, Math.ceil(total / data.pageSize)) : 1;
+  const currentPage = data?.page ?? 1;
+  const start = data ? (currentPage - 1) * data.pageSize : 0;
   const formatter = new Intl.NumberFormat("de-DE", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  const loading = !data && !failed;
+  const failed = serverFailed || isError;
+  const loading = isFetching || (!data && !failed);
+
+  useLayoutEffect(() => {
+    if (results.current) results.current.scrollTop = 0;
+  }, [page, currentPage, query]);
 
   useEffect(() => {
     const headerElement = headerContent.current;
@@ -108,8 +133,8 @@ export function Catalog({ name, title, trendingLabel = "Trending item", missingD
                 placeholder="Search…"
                 className={styles.searchInput}
                 value={search}
-                disabled={!data}
-                aria-controls={data ? `${id}-items` : undefined}
+                disabled={!initialData && !data}
+                aria-controls={data && !failed ? `${id}-items` : undefined}
                 onChange={(event) => { setSearch(event.target.value); setPage(1); }}
               />
             </label>
@@ -120,18 +145,18 @@ export function Catalog({ name, title, trendingLabel = "Trending item", missingD
             )}
           </form>
         </div>
-        {loading ? (
-          <p role="status">Loading {title.toLowerCase()}…</p>
+        {loading && !data ? (
+          <p role="status" className={styles.content}>Loading {title.toLowerCase()}…</p>
         ) : failed ? (
-          <section role="alert" className={styles.message}>
+          <section role="alert" tabIndex={0} className={`${styles.message} ${styles.content}`}>
             <h2 className={styles.cardTitle}>We couldn’t load {title.toLowerCase()}.</h2>
             <p>Please try again in a moment.</p>
-            <Button variant="outline" className={styles.control} onClick={() => window.location.reload()}>Try again</Button>
+            <Button variant="outline" className={styles.control} onClick={() => { if (serverFailed) setServerFailed(false); else void refetch(); }}>Try again</Button>
           </section>
         ) : (
           <>
-            <ul id={`${id}-items`} role="list" aria-label={title} className={styles.grid}>
-              {visibleItems.map((item) => (
+            <ul ref={results} id={`${id}-items`} role="list" aria-label={title} tabIndex={0} className={`${styles.grid} ${styles.content}`}>
+              {items.map((item) => (
                 <li key={item.id} className={styles.listItem}>
                   <Card title={item.title} className={styles.card}>
                     <p className={styles.details}>
@@ -143,22 +168,21 @@ export function Catalog({ name, title, trendingLabel = "Trending item", missingD
               ))}
             </ul>
             <p role="status" aria-live="polite" aria-atomic="true" className={styles.resultCount}>
-              {items.length ? `${start + 1}–${Math.min(start + size, items.length)} of ${items.length} ${title.toLowerCase()}` :
+              {loading ? `Loading ${title.toLowerCase()}…` : total ? `${start + 1}–${start + items.length} of ${total} ${title.toLowerCase()}` :
                 query ? `No ${title.toLowerCase()} match “${search.trim()}”.` : `No ${title.toLowerCase()} available.`}
             </p>
             {pageCount > 1 && (
               <nav aria-label="Pagination" className={styles.pagination}>
-                <Button variant="outline" className={styles.control} disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</Button>
+                <Button variant="outline" className={styles.control} disabled={loading || currentPage === 1} focusableWhenDisabled={loading}
+                  onClick={() => setPage(currentPage - 1)}>Previous</Button>
                 <span className={styles.pageNumber} aria-current="page">Page {currentPage} of {pageCount}</span>
-                <Button variant="outline" className={styles.control} disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>Next</Button>
+                <Button variant="outline" className={styles.control} disabled={loading || currentPage === pageCount} focusableWhenDisabled={loading}
+                  onClick={() => setPage(currentPage + 1)}>Next</Button>
               </nav>
             )}
           </>
         )}
       </main>
-      <footer className={styles.footer}>
-        <p>{name}</p>
-      </footer>
     </div>
   );
 }

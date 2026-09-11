@@ -12,10 +12,11 @@
 - 1.9. When property drilling starts to cause unnecessary boilerplate, where using Zustand stores/state-management would reduce that code size, in that case it is STRICTLY FORBIDDEN to use property drilling, and should use (or switch to) Zustand instead. But in cases, when Zustand would cause more code than property drilling (and only in such cases), need to stick with property drilling (but property drilling should be only reserved to those rare cases).
 - 1.10. For managing data retrieval from back-end and external services (API responses, loading/error states, caching, background refresh, mutations and other similar stuff) use TanStack Query.
 - 1.11. Removing code comments from your code changes, and instead the code should be implemented in self-documenting way.
+- 1.12. Need to use the reusable components solution shadcn/ui + Base UI. If the shadcn/ui + Base UI doens't provide something, need to wrap, extend, override, etc.
 
 ## 2. MUST use TypeScript instead of plain JavaScript:
 - 2.1. For example, specifying `any` for types is not allowed, and is reserved only to very rare cases, where there is really no other more proper alternative.
-- 2.2. MUST NOT use plain javascript. Instead MUST use typescript and latest ECMAScript features and built-ins instead of manual/custom implementation. 
+- 2.2. MUST NOT use plain javascript. Instead MUST use typescript and latest ECMAScript features and built-ins instead of manual/custom implementation.
 
 ## 3. Project‑wide consistency:
 - 3.1. MUST inspect the entire project, before adding or changing code, to identify the already established approach/pattern for what needs to be changed and follow the established approach/pattern. And, if researching for already established approach in the project, you find multiple different approach for implementing the same type of stuff, prioritize the most recently implemented one. It is STRICTLY PROHIBITED to "reinvent the wheel" if in the project or in dependencies there is already a solution available/implemented. And also it is STRICTLY PROHIBITED to keep implementations for multiple similar solutions, where instead they should be consolidated, merged, generalized into one solution, and made configurable for multiple use-cases. And, instead of creating similar multiple solutions, need to upgrade the existing one + configurable/parametrized. It is strictly forbidden to violate this rule.
@@ -41,7 +42,7 @@
 - 7.3. In styling code for spacing between elements MUST NOT use paddings and margins. Instead, MUST use `gap` spacings approach.
 - 7.4. In styling code MUST NOT use direct hard-coded color codes, sizes, fonts, and other hardcoded stuff, but instead MUST use theme variables, preferably picking from the already available ones.
 - 7.5. In styling code MUST NOT use direct css style attributes, but instead MUST use `@apply` approach.
-- 7.6. Layout should be 100% responsive - looking good on any size and aspect ratio screens and touch screens.
+- 7.6. Layout should be 100% responsive - looking good and usable on any size and aspect ratio screens and touch screens.
 
 ## 8. Templates:
 - 8.1. MUST NOT make a div-soup, div-soup is not allowed.

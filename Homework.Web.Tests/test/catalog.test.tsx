@@ -1,9 +1,19 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { act, cleanup, fireEvent, render as renderComponent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Catalog } from "@/generic-configurables/catalog/catalog";
+import { getQueryClient, QueryProvider } from "@/generic-configurables/query";
+import { createCollectionRoute } from "@/generic-configurables/catalog/collection.server";
 import type { CatalogData } from "@/generic-configurables/catalog/types";
 
+const endpoint = "/api/products";
+const source = { url: "https://example.test/entries", collection: "entries" };
+let getPage = createCollectionRoute({ source });
+
 const data: CatalogData = {
+  total: 5,
+  page: 1,
+  pageSize: 12,
   items: [
     { id: 1, title: "iPhone 9", detail: "Apple", amount: 549 },
     { id: 2, title: "Samsung Universe 9", detail: "Samsung", amount: 1249 },
@@ -19,6 +29,13 @@ const disconnect = vi.fn();
 
 beforeEach(() => {
   disconnect.mockClear();
+  getPage = createCollectionRoute({ source });
+  vi.stubGlobal("fetch", vi.fn(async (input: string | URL, options?: RequestInit) => {
+    if (String(input) === source.url) {
+      return Response.json({ entries: data.items.map((item, rank) => ({ ...item, rank })) });
+    }
+    return getPage(new Request(input, options));
+  }));
   vi.stubGlobal("ResizeObserver", class {
     constructor(callback: ResizeObserverCallback) {
       resizeHeader = vi.fn(() => callback([], this));
@@ -32,9 +49,23 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  getQueryClient().clear();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+
+function render(element: ReactElement) {
+  return renderComponent(element, { wrapper: QueryProvider });
+}
+
+function firstPage(pageSize: number) {
+  getPage = createCollectionRoute({ source, pageSize });
+  return { ...data, items: data.items.slice(0, pageSize), pageSize };
+}
+
+async function loaded() {
+  await waitFor(() => expect(screen.getByRole("main").getAttribute("aria-busy")).toBe("false"));
+}
 
 function measureHeader(width: number) {
   const brand = screen.getByRole("link", { name: "Homework" });
@@ -53,8 +84,90 @@ function measureHeader(width: number) {
 }
 
 describe("Catalogue interaction", () => {
+  it("uses the server-rendered first page without fetching or prefetching other pages", () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.queryByRole("heading", { name: "iPhone X" })).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("1–2 of 5 products");
+    expect(getQueryClient().getQueryCache().getAll()).toHaveLength(1);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps the list and keyboard focus while fetching just the requested page", async () => {
+    const pending = Promise.withResolvers<Response>();
+    vi.mocked(fetch).mockReturnValueOnce(pending.promise);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    const next = screen.getByRole("button", { name: "Next" });
+    const results = screen.getByRole("list", { name: "Products" });
+    next.focus();
+    fireEvent.click(next);
+
+    expect(screen.getByRole("status").textContent).toBe("Loading products…");
+    expect(screen.getByRole("main").getAttribute("aria-busy")).toBe("true");
+    expect(next.getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByRole("list", { name: "Products" })).toBe(results);
+    expect(document.activeElement).toBe(next);
+    fireEvent.click(next);
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledWith(new URL(`${endpoint}?page=2`, window.location.origin), { cache: "no-store", signal: expect.any(AbortSignal) });
+
+    pending.resolve(Response.json({ ...data, items: data.items.slice(2, 4), page: 2, pageSize: 2 }));
+    await loaded();
+
+    expect(screen.getByText("Page 2 of 3")).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Products" })).toBe(results);
+    expect(document.activeElement).toBe(next);
+  });
+
+  it("fetches fresh data when returning to a previously visited page", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ ...data, items: [{ ...data.items[0], title: "Updated title" }], total: 1 }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await loaded();
+
+    expect(fetch).toHaveBeenLastCalledWith(new URL(`${endpoint}?page=1`, window.location.origin), expect.objectContaining({ cache: "no-store" }));
+    expect(screen.getByRole("heading", { name: "Updated title" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("1–1 of 1 products");
+  });
+
+  it("retries failed page requests without a document reload", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 502 }));
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
+    expect(screen.getByRole("alert").textContent).toContain("We couldn’t load products.");
+    expect(fetch).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await loaded();
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText("Page 2 of 3")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "iPhone X" })).toBeTruthy();
+  });
+
+  it("cancels obsolete requests and ignores late responses when the search changes", async () => {
+    const pending = Promise.withResolvers<Response>();
+    vi.mocked(fetch).mockReturnValueOnce(pending.promise);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    const signal = vi.mocked(fetch).mock.calls[0][1]?.signal;
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "iPhone" } });
+    await loaded();
+    expect(signal?.aborted).toBe(true);
+    await act(async () => pending.resolve(Response.json({ ...data, items: data.items.slice(2, 4), page: 2, pageSize: 2 })));
+
+    expect(screen.getByRole("status").textContent).toBe("1–2 of 2 products");
+    expect(screen.getAllByRole("listitem").map((item) => within(item).getByRole("heading").textContent)).toEqual(["iPhone 9", "iPhone X"]);
+  });
+
   it("shows cards with titles, brands, prices, and a global trending title", () => {
-    render(<Catalog name="Homework" title="Products" trendingLabel="Trending product" data={data} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" trendingLabel="Trending product" data={data} />);
 
     const cards = within(screen.getByRole("list", { name: "Products" })).getAllByRole("listitem");
     expect(cards).toHaveLength(5);
@@ -69,12 +182,12 @@ describe("Catalogue interaction", () => {
     expect(screen.getByText("Trending product:").parentElement?.textContent).toContain(data.trendingTitle);
   });
 
-  it("filters titles across every page, ignoring case and surrounding whitespace, without fetching", () => {
-    const fetch = vi.fn();
-    vi.stubGlobal("fetch", fetch);
-    render(<Catalog name="Homework" title="Products" data={data} pageSize={2} />);
+  it("requests title searches across every page, ignoring case and surrounding whitespace", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "  IPHON  " } });
+    await loaded();
 
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "iPhone 9" })).toBeTruthy();
@@ -82,76 +195,167 @@ describe("Catalogue interaction", () => {
     expect(screen.queryByRole("heading", { name: "Laptop" })).toBeNull();
     expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
     expect(screen.getByRole("status").textContent).toBe("1–2 of 2 products");
-    expect(screen.getByText(/Highest rated item/)).toBeTruthy();
-    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.getByText("Trending item:").parentElement?.textContent).toContain("Laptop");
+    expect(fetch).toHaveBeenCalledWith(new URL(`${endpoint}?page=1&search=iphon`, window.location.origin), expect.objectContaining({ cache: "no-store" }));
   });
 
-  it("paginates without gaps or duplicates and disables the boundary controls", () => {
-    render(<Catalog name="Homework" title="Products" data={data} pageSize={2} />);
+  it("paginates without gaps or duplicates and disables the boundary controls", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Previous" }).disabled).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
     expect(screen.getByText("Page 2 of 3")).toBeTruthy();
     expect(screen.getAllByRole("listitem").map((card) => within(card).getByRole("heading").textContent)).toEqual(["iPhone X", "Green Tea"]);
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
     expect(screen.getByRole("heading", { name: "Laptop" })).toBeTruthy();
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Next" }).disabled).toBe(true);
     expect(screen.getByRole("status").textContent).toBe("5–5 of 5 products");
 
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await loaded();
     expect(screen.getByText("Page 2 of 3")).toBeTruthy();
   });
 
-  it("keeps pagination within the search results and resets it when clearing", () => {
-    render(<Catalog name="Homework" title="Products" data={data} pageSize={1} />);
+  it("makes the results keyboard-focusable and keeps the surrounding controls outside the scroll area", () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    const results = screen.getByRole("list", { name: "Products" });
+
+    expect(results.tabIndex).toBe(0);
+    results.focus();
+    expect(document.activeElement).toBe(results);
+    expect(screen.getByRole("searchbox").getAttribute("aria-controls")).toBe(results.id);
+    expect(screen.queryByRole("contentinfo")).toBeNull();
+
+    for (const element of [
+      screen.getByRole("banner"),
+      screen.getByRole("heading", { name: "Products" }),
+      screen.getByRole("search"),
+      screen.getByRole("status"),
+      screen.getByRole("navigation", { name: "Pagination" }),
+    ]) {
+      expect(results.contains(element)).toBe(false);
+    }
+  });
+
+  it("returns results to the top when paging, searching, or clearing without moving keyboard focus", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    const results = screen.getByRole("list", { name: "Products" });
+    const next = screen.getByRole("button", { name: "Next" });
+    const search = screen.getByRole("searchbox");
+
+    results.scrollTop = 120;
+    next.focus();
+    fireEvent.click(next);
+    await loaded();
+    expect(results.scrollTop).toBe(0);
+    expect(document.activeElement).toBe(next);
+
+    results.scrollTop = 120;
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await loaded();
+    expect(results.scrollTop).toBe(0);
+
+    results.scrollTop = 120;
+    search.focus();
+    fireEvent.change(search, { target: { value: "iPhone" } });
+    await loaded();
+    expect(results.scrollTop).toBe(0);
+    expect(document.activeElement).toBe(search);
+
+    results.scrollTop = 120;
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    await loaded();
+    expect(results.scrollTop).toBe(0);
+    expect(document.activeElement).toBe(search);
+  });
+
+  it("preserves the results scroll position when unrelated state or equivalent search text changes", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
+    const search = screen.getByRole("searchbox");
+    fireEvent.change(search, { target: { value: "iPhone" } });
+    await loaded();
+    const results = screen.getByRole("list", { name: "Products" });
+    results.scrollTop = 120;
+
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+    expect(results.scrollTop).toBe(120);
+    fireEvent.change(search, { target: { value: "  IPHONE  " } });
+    await loaded();
+    expect(results.scrollTop).toBe(120);
+  });
+
+  it("keeps pagination within the search results and resets it when clearing", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(1)} />);
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "iPhone" } });
+    await loaded();
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
     expect(screen.getByRole("heading", { name: "iPhone X" })).toBeTruthy();
     expect(screen.getByText("Page 2 of 2")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    await loaded();
     expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("");
     expect(document.activeElement).toBe(screen.getByRole("searchbox"));
     expect(screen.getByText("Page 1 of 5")).toBeTruthy();
   });
 
-  it("announces no matches, treats whitespace as no filter, and prevents form navigation", () => {
-    render(<Catalog name="Homework" title="Products" data={data} />);
+  it("announces no matches, treats whitespace as no filter, and prevents form navigation", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "does not exist" } });
+    await loaded();
     expect(screen.getByRole("status").textContent).toBe("No products match “does not exist”.");
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
     expect(fireEvent.submit(screen.getByRole("search"))).toBe(false);
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "   " } });
+    await loaded();
     expect(screen.getAllByRole("listitem")).toHaveLength(5);
   });
 
-  it("handles absent brands, zero prices, and an empty catalogue", () => {
-    const { rerender } = render(<Catalog name="Homework" title="Products" missingDetail="Brand unavailable" data={data} />);
+  it("handles absent brands and zero prices", () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" missingDetail="Brand unavailable" data={data} />);
     expect(screen.getByText("Brand unavailable")).toBeTruthy();
     expect(screen.getByText(/^0\s*€/)).toBeTruthy();
+  });
 
-    rerender(<Catalog name="Homework" title="Products" data={{ items: [], trendingTitle: null }} />);
+  it("handles an empty catalogue", () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={{ ...data, items: [], total: 0, trendingTitle: null }} />);
     expect(screen.getByRole("status").textContent).toBe("No products available.");
     expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
   });
 
-  it("provides loading and recoverable error states", () => {
-    const { rerender } = render(<Catalog name="Homework" title="Products" />);
-    expect(screen.getByRole("status").textContent).toBe("Loading products…");
-    expect(screen.getByRole("main").getAttribute("aria-busy")).toBe("true");
-    expect(screen.getByRole<HTMLInputElement>("searchbox").disabled).toBe(true);
+  it("provides a loading state", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />);
+    expect(screen.getByRole("dialog", { name: "Loading" })).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "Loading" })).toBeTruthy();
+    expect(screen.getByRole("status", { hidden: true }).textContent).toBe("Loading products…");
+    expect(screen.getByRole("main", { hidden: true }).getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByRole<HTMLInputElement>("searchbox", { hidden: true }).disabled).toBe(true);
+    await loaded();
+  });
 
-    rerender(<Catalog name="Homework" title="Products" failed />);
+  it("recovers from initial server errors by fetching JSON without reloading the page", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" failed />);
     expect(screen.getByRole("alert").textContent).toContain("We couldn’t load products.");
-    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.getByRole("alert").tabIndex).toBe(0);
     expect(screen.getByRole("main").getAttribute("aria-busy")).toBe("false");
+    expect(fetch).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await loaded();
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
+    expect(fetch).toHaveBeenCalledWith(new URL(`${endpoint}?page=1`, window.location.origin), expect.anything());
   });
 
   it("connects the mobile navigation toggle to its expanded state", () => {
-    render(<Catalog name="Homework" title="Products" data={data} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
     const menu = screen.getByRole("button", { name: "Menu" });
     expect(menu.getAttribute("aria-expanded")).toBe("false");
     expect(document.getElementById(menu.getAttribute("aria-controls") ?? "")).toBeTruthy();
@@ -163,7 +367,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("adapts navigation to measured content and clamp gaps without a screen breakpoint", () => {
-    const { unmount } = render(<Catalog name="Homework" title="Products" data={data} />);
+    const { unmount } = render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
     const { menu, navigation } = measureHeader(280);
     expect(menu.hasAttribute("hidden")).toBe(false);
     expect(navigation.getAttribute("aria-hidden")).toBe("true");
@@ -186,7 +390,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("preserves keyboard focus when navigation expands or collapses after resizing", () => {
-    render(<Catalog name="Homework" title="Products" data={data} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
     const { menu, navigation } = measureHeader(280);
     menu.focus();
 
@@ -201,13 +405,19 @@ describe("Catalogue interaction", () => {
     expect(navigation.hasAttribute("inert")).toBe(false);
   });
 
-  it("clamps the page when the catalogue shrinks", () => {
-    const { rerender } = render(<Catalog name="Homework" title="Products" data={data} pageSize={2} />);
+  it("clamps the page when the catalogue shrinks on the server", async () => {
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ ...data, items: data.items.slice(2, 3), total: 3, page: 2, pageSize: 2 }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
 
-    rerender(<Catalog name="Homework" title="Products" data={{ ...data, items: data.items.slice(0, 3) }} pageSize={2} />);
     expect(screen.getByText("Page 2 of 2")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "iPhone X" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("3–3 of 3 products");
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await loaded();
+    expect(screen.getByText("Page 1 of 3")).toBeTruthy();
   });
 });

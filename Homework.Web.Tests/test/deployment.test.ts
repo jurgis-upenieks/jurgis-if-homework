@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import type { CatalogData } from "@/generic-configurables/catalog/types";
 
 const deploymentUrl = process.env.DEPLOYMENT_URL;
 
@@ -21,8 +22,22 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
   it("retrieves and renders product data on the server", () => {
     expect(page.title).toBe("Products | Homework");
     expect(page.querySelectorAll('ul[aria-label="Products"] > li').length).toBeGreaterThan(0);
+    expect(page.querySelectorAll('ul[aria-label="Products"] > li').length).toBeLessThanOrEqual(12);
     expect(page.querySelector('[role="alert"]')).toBeNull();
   });
+
+  it("serves later pages as uncached JSON containing only their own products", async () => {
+    const response = await fetch(new URL("/api/products?page=2", deploymentUrl), { signal: AbortSignal.timeout(15_000) });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const data: CatalogData = await response.json();
+    expect(data.page).toBe(2);
+    expect(data.pageSize).toBe(12);
+    expect(data.items.length).toBeGreaterThan(0);
+    expect(data.items.length).toBeLessThanOrEqual(data.pageSize);
+    expect(data.total).toBeGreaterThan(data.pageSize);
+  }, 20_000);
 
   it("serves the JavaScript, styles, and fonts required by the browser", async () => {
     const assets = [...page.querySelectorAll("script[src], link[href]")]

@@ -1,0 +1,23 @@
+@reference "../../app/globals.css";
+
+.overlay {
+  @apply fixed inset-0 z-50 grid place-items-center bg-background/50 opacity-100 outline-none;
+  @apply transition-opacity duration-(--transition-duration-slow) ease-out;
+}
+
+.overlay[data-starting-style],
+.overlay[data-ending-style] {
+  @apply opacity-0;
+}
+
+.overlay[data-closed] {
+  @apply opacity-0 duration-(--transition-duration-quick);
+}
+
+.spinner {
+  @apply block size-clamp-7 rounded-full border-(length:--spacing-clamp-1) border-primary border-t-transparent;
+}
+
+.visuallyHidden {
+  @apply sr-only;
+}

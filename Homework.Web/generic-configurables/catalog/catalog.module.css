@@ -1,7 +1,7 @@
 @reference "../../app/globals.css";
 
 .page {
-  @apply flex min-h-dvh flex-1 flex-col gap-clamp-5 bg-background bg-linear-to-br from-secondary via-background to-accent/40 text-foreground;
+  @apply grid h-dvh grid-rows-[auto_minmax(0,1fr)_0] gap-y-viewport-gap bg-background bg-linear-to-br from-secondary via-background to-accent/40 text-foreground;
 }
 
 .skipLink {
@@ -15,7 +15,7 @@
 }
 
 .headerContent {
-  @apply relative col-start-2 flex min-h-clamp-8 flex-wrap items-center gap-x-clamp-5 gap-y-clamp-2;
+  @apply relative col-start-2 flex min-h-viewport-band flex-wrap items-center gap-x-clamp-5 gap-y-clamp-2;
 }
 
 .name {
@@ -45,7 +45,7 @@
 }
 
 .main {
-  @apply grid w-full max-w-clamp-10 flex-1 grid-cols-[0_minmax(0,1fr)_0] content-start self-center gap-clamp-5;
+  @apply grid min-h-0 w-full max-w-clamp-10 grid-cols-[0_minmax(0,1fr)_0] grid-rows-[auto_auto_minmax(0,1fr)] justify-self-center gap-x-clamp-5 gap-y-viewport-gap;
 }
 
 .main > * {
@@ -57,7 +57,7 @@
 }
 
 .toolbar {
-  @apply flex flex-wrap items-center gap-clamp-5;
+  @apply flex flex-wrap items-center gap-viewport-gap;
 }
 
 .trending {
@@ -85,7 +85,11 @@
 }
 
 .grid {
-  @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,var(--spacing-clamp-9)),1fr))] items-start gap-clamp-5 empty:hidden;
+  @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,var(--spacing-clamp-9)),1fr))] content-start items-start gap-clamp-5 empty:hidden;
+}
+
+.content {
+  @apply min-h-0 overflow-y-auto overscroll-y-contain focus-visible:outline-(length:--spacing-clamp-1) focus-visible:-outline-offset-(--spacing-clamp-1);
 }
 
 .listItem {
@@ -113,7 +117,7 @@
 }
 
 .resultCount {
-  @apply text-clamp-3 font-medium text-muted-foreground wrap-anywhere;
+  @apply self-start text-clamp-3 font-medium text-muted-foreground wrap-anywhere;
 }
 
 .pagination {
@@ -138,13 +142,4 @@
 
 .message {
   @apply flex flex-col items-start gap-clamp-2;
-}
-
-.footer {
-  @apply grid min-h-clamp-8 grid-cols-[1fr_minmax(0,var(--spacing-clamp-10))_1fr] items-center gap-x-clamp-4;
-  @apply border-t-(length:--spacing-clamp-0) bg-card/70 text-clamp-3 text-muted-foreground wrap-anywhere;
-}
-
-.footer > * {
-  @apply col-start-2 min-w-0;
 }

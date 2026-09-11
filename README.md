@@ -1,9 +1,3 @@
-# Deploy to Azure
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) to connect Azure App Service to GitHub and
-automatically deploy pushes to `main`. One Node.js application provides the
-server-side data retrieval, server-side rendering, and interactive browser UI.
-
 # 1. Initial empty project creation and repository creation commands
  - First things first, I updated my NodeJS version to latest stable to get the latest security patches for node and npm, which is especially important nowadays to update as frequently as possible, mainly to avoid being hacked by AI cyberattackers.
  - `cd ~/source`
@@ -41,13 +35,15 @@ server-side data retrieval, server-side rendering, and interactive browser UI.
 
 # 6. Agentic coding
  - Everywhere, where in this project the Codex was used, it adhered to the custom guideline rules AGENTS.md. You can view the rules in that file.
+ - The custom guideline rules enforce the code quality and so that it remains maintainable for the long term.
  - I am using the 113 EUR monthly codex plan with GPT-6 Astra XHigh effort mode.
  - I am doing extra re-validation with the Critic in a loop.
 
-# 7. For stuff, which is fitting to go into the server-side, it is put in the server-side code.
+# 7. A full-stack app
+- The products list is paginated, so for each page only the needed products list data needs is retrieved from the server-side. When a user first opens the site and gets in to the first page of the products list, a server-side rendering is already putting all data visually in that page before sending to client-side. And also, for hydration to work, in the rendered page matadata it includes a json with the data for models. Then after, the client-side gets that page with all the data already populated in the dom, it starts hydration silently in the background to transition from a static page to a Single Page Application full app mode. But when later, when a user decides to switch to another products list page, then the client-side requests from the server-side the data for the second page (not asking for a server-side-rendering of the second page, but requests only the data for the second page of products). Also, on the server-side, the server doesnt cache the products list, because on the external service, from which it gets the data, that data might change from time to time.
 
-# 8. Deployed with Azure CI/CD
- - This full-stack app has been deployed to Azure cloud and the deployed version is publically available in: https://jurgis-if-homework-f7fmdjdcfndsbqdu.germanywestcentral-01.azurewebsites.net
+# 8. Deployed to production with Azure CI/CD
+ - This full-stack app has been deployed to Azure cloud and the deployed version is publicly available at: https://jurgis-if-homework-f7fmdjdcfndsbqdu.germanywestcentral-01.azurewebsites.net
  - This is a full-stack Next.js app, and in Azure it has also the server-side running (for server-side-rendering and for responding to REST API requests from the client-side).
  - The deployment method in Azure is App Service Web App with:
    - Publish as: Code
@@ -56,7 +52,15 @@ server-side data retrieval, server-side rendering, and interactive browser UI.
    - Region: Germany West Central
    - From Azure side I have created a custom manged github identity, and then from github side I have set up all the actions secrets variables with azure identities.
    - Then I triggered the first deployment to Azure from the Github Actions -> Run workflow.
-   - From that point on, on every future git push to 'main' branch, that github actions workflow is triggered automatically.
- - I have configured the Azure pipelines, so that on every git-push to 'main' branch the following jobs are automatically triggered: build, run unit-tests and deploy to production.
+   - From that point on, on every future git push to 'main' branch, that Github Actions workflow is triggered automatically.
+ - I have configured the Azure pipelines, so that on every git-push to 'main' branch the following jobs are automatically triggered by Azure side: build, run unit-tests and deploy to production.
  - I have configured the pipelines so that the deployment to production is gated by unit-tests run.
  - The Azure CI/CD pipelines configuration is in: .github/workflows/azure-app-service.yml
+
+# 9. Responsive and mobile-friendly front-end
+ - My special signature when developing front-ends, is making fully dynamic responsive spaces (inner, outer, in-between) and sizes in layout with a custom standardized centralized css 'clamp' function system. This way the site contents are looking good and usable on any screen size and aspect ratio.
+ - The layout is fully responsive - all layout parts shift and resize as needed.
+
+# 10. Unit-tests are automatically generated and maintained as needed by codex, because it is instructed to do so by the AGENTS.md custom guideline rules. It does that automatically every time I am asking to implement or change something. This ensures that the unit-test coverage is always guaranteed to be close to 100%.
+
+# 11. There is a loading spinner and a half transparent full site overlay so a user is blocked from interacting with front-end while waiting for the remote/async actions to be completed. And it has a slow fade in when needs to be shown to reduce screen flashing, and fade out quickly, when is not needed anymore. And it is implemented in global way, so it automatically/implicitly applies to absolutely all remote calls.

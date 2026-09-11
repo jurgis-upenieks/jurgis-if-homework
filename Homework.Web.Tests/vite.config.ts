@@ -4,7 +4,10 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
   resolve: {
-    alias: { "@": fileURLToPath(new URL("../Homework.Web", import.meta.url)) },
+    alias: {
+      "@": fileURLToPath(new URL("../Homework.Web", import.meta.url)),
+      "server-only": fileURLToPath(new URL("./node_modules/next/dist/compiled/server-only/empty.js", import.meta.url)),
+    },
     dedupe: ["react", "react-dom", "next", "next-themes", "zustand", "@tanstack/react-query", "@base-ui/react", "cn"],
   },
   test: {

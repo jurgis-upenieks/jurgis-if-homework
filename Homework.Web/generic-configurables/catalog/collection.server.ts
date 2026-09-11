@@ -1,20 +1,23 @@
+import "server-only";
+
 import { getQueryClient } from "@/lib/query-client";
-import type { CatalogData, CollectionSource } from "./types";
+import type { CatalogData, CatalogPageProps, CollectionRequest, CollectionSource } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function loadCollection(source: CollectionSource) {
+export function loadCollection(source: CollectionSource, { page = 1, pageSize = 12, search = "", signal: requestSignal }: CollectionRequest = {}) {
   return getQueryClient().query({
-    queryKey: ["catalog", source],
+    queryKey: ["catalog", source, page, pageSize, search],
     retry: false,
+    staleTime: 0,
+    gcTime: 0,
     queryFn: async ({ signal }): Promise<CatalogData> => {
-      const request = {
-        signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
-        next: { revalidate: 300 },
-      };
-      const response = await fetch(source.url, request);
+      const response = await fetch(source.url, {
+        signal: AbortSignal.any([signal, AbortSignal.timeout(10_000), ...(requestSignal ? [requestSignal] : [])]),
+        cache: "no-store",
+      });
 
       if (!response.ok) {
         throw new Error(`Catalogue request failed (${response.status}).`);
@@ -28,7 +31,9 @@ export function loadCollection(source: CollectionSource) {
       }
 
       const fields = { id: "id", title: "title", detail: "detail", amount: "amount", rank: "rank", ...source.fields };
-      const data: CatalogData = { items: [], trendingTitle: null };
+      const size = Number.isFinite(pageSize) ? Math.max(1, Math.floor(pageSize)) : 12;
+      const query = search.trim().toLocaleLowerCase("en");
+      const data: CatalogData = { items: [], trendingTitle: null, total: 0, page: 1, pageSize: size };
       const ids = new Set<string | number>();
       let highestRank = -Infinity;
 
@@ -66,12 +71,35 @@ export function loadCollection(source: CollectionSource) {
           data.trendingTitle = title;
         }
 
-        if (!source.minimum || (typeof minimumValue === "number" && minimumValue >= source.minimum.value)) {
+        if ((!source.minimum || (typeof minimumValue === "number" && minimumValue >= source.minimum.value)) && title.toLocaleLowerCase("en").includes(query)) {
           data.items.push({ id, title, detail: typeof detail === "string" ? detail.trim() || null : null, amount });
         }
       }
 
+      data.total = data.items.length;
+      const pageCount = Math.max(1, Math.ceil(data.total / size));
+      data.page = Number.isFinite(page) ? Math.min(Math.max(1, Math.floor(page)), pageCount) : 1;
+      data.items = data.items.slice((data.page - 1) * size, data.page * size);
       return data;
     },
   });
+}
+
+export function createCollectionRoute({ source, pageSize }: Pick<CatalogPageProps, "source" | "pageSize">) {
+  return async function GET(request: Request) {
+    const parameters = new URL(request.url).searchParams;
+    const page = Number(parameters.get("page") ?? 1);
+    const headers = { "Cache-Control": "no-store" };
+
+    if (!Number.isSafeInteger(page) || page < 1) {
+      return Response.json({ error: "Page must be a positive integer." }, { status: 400, headers });
+    }
+
+    try {
+      const data = await loadCollection(source, { page, pageSize, search: parameters.get("search") ?? "", signal: request.signal });
+      return Response.json(data, { headers });
+    } catch {
+      return Response.json({ error: "Catalogue is temporarily unavailable." }, { status: 502, headers });
+    }
+  };
 }

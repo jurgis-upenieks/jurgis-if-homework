@@ -53,13 +53,20 @@ npm --prefix Homework.Web.Tests run build
 
 Application tests live in `test/` as `*.test.ts` or `*.test.tsx`.
 They cover TanStack Query cache isolation, browser cache reuse, provider stability,
-and shared queries, plus Zustand provider isolation, state retention, selector
+shared queries, and the automatic global loading overlay across concurrent queries,
+mutations, background refreshes, retries, failures, and cancellations, plus modal
+focus management, dismissal prevention, and restored interaction afterward. They also
+cover Zustand provider isolation, state retention, selector
 subscriptions, and missing-provider errors.
 Shared control tests cover native form submission, disabled actions, input labels,
 refs and values, semantic cards, and application provider defaults.
-Catalogue tests cover server retrieval and validation, the inclusive discount
-threshold, global ranking, title-only search across pages, pagination boundaries,
-empty and error states, and mobile navigation controls. Health checks cover the
+Catalogue tests cover uncached server retrieval and validation, the inclusive
+discount threshold, global ranking, server-rendered first-page data, JSON page
+requests, title-only search across pages, pagination boundaries, cancellation,
+fresh data on revisits, empty and recoverable error states, and mobile navigation controls.
+The test configuration maps Next.js's `server-only` marker to its bundled empty
+module so server helpers can be exercised alongside the browser components.
+Health checks cover the
 uncached, external-service-independent deployment endpoint. Packaging tests cover
 the standalone server, browser assets, excluded environment files, stale output,
 and incomplete builds. Optional deployed-app

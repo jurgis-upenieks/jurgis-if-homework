@@ -7,8 +7,8 @@ const theme = readFileSync(resolve(application, "generic-configurables/applicati
 const levels = [...theme.matchAll(/--spacing-clamp-(\d+): (clamp\([^;]+\));/g)].map(([, level, value]) => ({ level: Number(level), value }));
 
 function pixels(value: string, width: number, height: number, rootSize = 16) {
-  const units = { rem: rootSize, vw: width / 100, vh: height / 100 };
-  const resolved = value.replace(/([\d.]+)(rem|vw|vh)/g, (_, amount: string, unit: keyof typeof units) => `${Number(amount) * units[unit]}px`);
+  const units = { rem: rootSize, vw: width / 100, vh: height / 100, dvh: height / 100 };
+  const resolved = value.replace(/([\d.]+)(rem|vw|vh|dvh)/g, (_, amount: string, unit: keyof typeof units) => `${Number(amount) * units[unit]}px`);
   const style = document.createElement("span").style;
   style.width = resolved;
   expect(style.width).toMatch(/^(?:calc\()?([\d.]+)px\)?$/);
@@ -60,6 +60,26 @@ describe("Fluid sizing scale", () => {
     for (const { level } of levels) {
       expect(theme).toContain(`--text-clamp-${level}: var(--spacing-clamp-${level});`);
       expect(theme).toContain(`--radius-clamp-${level}: var(--spacing-clamp-${level});`);
+    }
+  });
+
+  it("compresses viewport gaps and bands on short screens while preserving the usual spacing on taller screens", () => {
+    const viewportSizes = [...theme.matchAll(/--spacing-viewport-(gap|band): ([^;]+);/g)];
+    expect(viewportSizes.map(([, name]) => name)).toEqual(["gap", "band"]);
+
+    for (const [, name, value] of viewportSizes) {
+      const expression = value.replace(/var\(--spacing-clamp-(\d+)\)/g, (_, level: string) => levels[Number(level)].value);
+      const maximum = levels[name === "gap" ? 5 : 8].value;
+
+      for (const width of [320, 568, 844, 1440]) {
+        expect(pixels(expression, width, 320)).toBeLessThan(pixels(maximum, width, 320));
+        expect(pixels(expression, width, 900)).toBe(pixels(maximum, width, 900));
+        expect(pixels(expression, width, 320)).toBeLessThan(pixels(expression, width, 390));
+      }
+
+      expect(pixels(expression, 390, 844)).toBe(pixels(maximum, 390, 844));
+      expect(pixels(expression, 320, 568)).toBe(pixels(maximum, 320, 568));
+      expect(pixels(expression, 390, 844, 32)).toBeGreaterThan(pixels(expression, 390, 844));
     }
   });
 
