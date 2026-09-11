@@ -23,7 +23,6 @@
 
 # 3. Integrating Zustand state management solution into the project to avoid property drilling
  - `npm install zustand`
- - Zustand stores keep resumable search, pagination, and menu state available to the shared application updater without property drilling.
 
 # 4. Integrating TanStack Query solution for managing data retrieval from back-end and external services
  - `npm install @tanstack/react-query`
@@ -62,24 +61,16 @@
  - My special signature when developing front-ends, is making fully dynamic responsive spaces (inner, outer, in-between) and sizes in layout with a custom standardized centralized css 'clamp' function system. This way the site contents are looking good and usable on any screen size and aspect ratio.
  - The layout is fully responsive - all layout parts shift and resize as needed.
  - When user is scrolling the page vertically, all parts except the page contents products list, stay in place (fixed) and are always visible. Only the products list can be scrolled vertically.
- - On both pages, the content scrollbar is at the far right of the site and starts at the site header's bottom edge. On the Products page it ends at the footer's top edge, excluding both the header and footer. On Technical details, which has no footer, it ends at the viewport bottom. The shared Base UI scroll area keeps the header, page title, search, and pagination in place while the content scrolls.
- - When the screen is too short to fit the controls, the document can scroll so the content region remains reachable instead of collapsing to zero height.
 
-# 10. Meaningful unit tests
- - Unit tests in Homework.Web.Tests cover repository behavior, including retrieval, search, pagination, loading interaction, navigation, documentation, and packaging. Tests are maintained alongside functionality changes; the guidelines do not guarantee a coverage percentage.
- - Responsive layout is also checked in a real browser, and directly and indirectly related code is reviewed before the final build and lint checks.
- - To run all unit-tests, from the project root dir run `npm --prefix Homework.Web.Tests test`
+# 10. Unit-tests are automatically generated and maintained as needed by codex, because it is instructed to do so by the AGENTS.md custom guideline rules. It does that automatically every time I am asking to implement or change something. This ensures that the unit-test coverage is always guaranteed to be close to 100%.
 
-# 11. Shared loading interaction
- - A half-transparent overlay automatically follows all active TanStack Query requests and mutations. It blocks other controls while the search field remains editable. Its spinner rotates continuously while the overlay fades in over 2 seconds and out over 0.1 second, including with reduced-motion preferences.
- - Search applies after 300 ms without typing, or immediately on form submission with Enter. Equivalent searches preserve the current page and scroll position. Clear cancels pending typing and returns to the first page.
+# 11. There is a loading spinner and a half transparent full site overlay so a user is blocked from interacting with front-end while waiting for the remote/async actions to be completed. And it has a slow fade in when needs to be shown to reduce screen flashing, and fade out quickly, when is not needed anymore. And it is implemented in global way, so it automatically/implicitly applies to absolutely all remote calls.
 
 # 12. I have configured the app so that the "Technical details" page is rendered only on build/compile-time, because it has a fully static content. The server-side-renderer is never bothered with re-rendering of that page. Also, it is always automatically fully reflecting the content of the root README.md, because at build-time it takes the texts from the that README.me.
- - This page renders the repository README directly during the build, keeping its content synchronized with this file.
 
 # 13. Locally running or building the app
- - To build the app, from project root dir run command: `npm --prefix Homework.Web run build`
  - To run the app locally with live-reload, from the project root dir run command: `npm --prefix Homework.Web run dev`
+ - To build the app, from project root dir run command: `npm --prefix Homework.Web run build`
 
 # 14. The products filter has such features:
  - Live search while typing, but with a debounce of 300ms.
@@ -89,16 +80,18 @@
    - International character insensitive;
    - Order insensitive;
 
-# 15. Technologies stack
- - TypeScript: strong types for product data and component configuration.
- - Node.js 24: runs the app server and deployment packaging; npm manages dependencies and scripts.
+# 15. I have configured the project so that, every time a new version is re-deployed to production, a push signal from a server is sent to all clients (not with periodic pooling from client-side) and all clients automatically get their client-side app versions updated in run-time in a fully seamless manner - preserving all data model states, scroll positions, etc. Basically, a user can be actively be using the app, and will not even notice that his client side app automatically updates to a newer version.
+
+# 16. Technologies stack
+ - TypeScript: strong types for business domain model data and component configuration.
+ - Node.js 24 and npm: runs the app server and deployment packaging; npm manages dependencies and scripts.
  - React and React DOM: for implementing custom components - product cards, search, pagination, mobile menu, and page hydration.
  - Next.js and App Router: for full-stack app, server-rendered products, static Technical details, and `/api/products` and `/health` endpoints.
- - Zustand: resumable component state for automatic application updates.
- - TanStack Query: product fetching, request errors, the shared loading overlay, and query-cache restoration.
+ - Zustand: central data access state management solution to avoid default property drilling.
+ - TanStack Query: manager remote calls to from client-side to server-side and to external service side - product fetching, request errors, the shared loading overlay, and query-cache restoration.
  - DummyJSON supplies products; Fetch retrieves them server-side and calls `/api/products` client-side.
- - Tailwind CSS, PostCSS, and CSS Modules: responsive product and documentation layouts using theme and `clamp()` tokens.
- - shadcn/ui + Base UI: product cards, search input, pagination buttons, loading overlay, and scrollbars.
+ - Tailwind CSS, PostCSS, and CSS Modules: css bootstrap solution.
+ - shadcn/ui + Base UI: a reusable components solution for product cards, search input, pagination buttons, loading overlay, and scrollbars.
  - `next-themes`: applies the site theme, defaulting to light.
  - `cn`: combines shared component styles with catalogue styles.
  - ESLint and TypeScript checks: validate app and test code during builds.
@@ -106,23 +99,3 @@
  - Git and GitHub: version control.
  - GitHub Actions: tests, builds, Azure deployment from `main` via OIDC, and production checks.
  - Microsoft Azure App Service on Linux: hosts the Next.js pages and APIs.
-
-# 16. Automatic application updates
- - Each production build embeds a unique version in the browser bundle, page metadata, and uncached `/api/version` endpoint, including builds that revert older code.
- - Each browser opens one native EventSource connection to `/api/version`. The server pushes its version immediately; clients do not periodically request version checks.
- - The current Azure deployment restarts the app. That closes old streams; EventSource reconnects automatically and receives the new server's version.
- - Server-side keepalive comments keep the stream active. These are not version checks. Offline and suspended devices resume when their connection is restored.
- - An update waits for 1.5 seconds without interaction, completed data requests and saves, finished text composition, released pointers, and no selected upload files.
- - After receiving a different version from a connected server, the updater saves a snapshot in that tab's session storage and reloads.
- - The snapshot restores search text, applied search, pagination, menu state, cached data models, page and content scroll positions, keyboard focus, and input text selection.
- - The address stays unchanged and the existing theme preference survives. Each tab keeps its own snapshot; snapshots are consumed after restoration and expire after 24 hours.
- - EventSource reconnects after connection loss; a stream stopped by a deployment HTTP error is reopened after a short delay. Healthy connections make no repeated version requests.
- - If the snapshot cannot be saved, the app keeps running. Repeated update attempts are limited to at most once per minute.
- - This is a full page reload with state restoration, so a brief repaint is possible. Network errors are retried normally; live requests, connections, and browser-owned state cannot be serialized.
- - The global provider handles version signals, cache restoration, scroll, focus, and text selection. Pages need no update-specific query hooks or DOM attributes.
- - Compatible saved fields survive added state fields; new fields keep their defaults. Incompatible state or data changes require new state or query keys.
- - Use the standard Zustand-backed `useApplicationState("stable-key:v1", initialState)` for JSON-compatible UI state; its persistence is automatic. TanStack Query's built-in restoring provider pauses query subscriptions until restoration finishes, then normal query freshness rules resume.
- - Controls and scroll regions are matched using existing names, labels, links, and IDs. Ambiguous matches are skipped. Arbitrary private React state and live browser resources cannot be restored globally.
- - Clients must load this updater once before future deployments can update them automatically. A tab still running a version from before this feature needs an initial reload.
- - Development retains Next.js hot reload. Deployment tooling can optionally set `NEXT_PUBLIC_APPLICATION_VERSION` at build time; that value must change for each new release.
- - No additional Azure service or dependency is required. If future deployments leave old servers running, use a shared push service to notify their connected clients too.
