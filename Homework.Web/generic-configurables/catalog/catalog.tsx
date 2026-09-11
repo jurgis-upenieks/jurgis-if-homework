@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ApplicationHeader } from "../application/application-header";
 import { ApplicationScrollArea, ApplicationScrollContent, ApplicationScrollViewport } from "../application/application-scroll-area";
+import { useApplicationState } from "../application/application-state";
 import { Button, Card, Input } from "../ui";
 import { getSearchTokens } from "./search";
 import type { CatalogData, CatalogProps } from "./types";
@@ -17,10 +18,7 @@ export function Catalog({
   const id = useId();
   const searchInput = useRef<HTMLInputElement>(null);
   const results = useRef<HTMLDivElement>(null);
-  const [search, setSearch] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [serverFailed, setServerFailed] = useState(initialFailed);
+  const [{ search, appliedSearch, page, serverFailed }, update] = useApplicationState(`catalog:${endpoint}:v1`, { search: "", appliedSearch: "", page: 1, serverFailed: initialFailed });
   const query = getSearchTokens(appliedSearch).join(" ");
   const { data, isError, isFetching, refetch } = useQuery({
     queryKey: ["catalog", endpoint, page, query],
@@ -51,9 +49,8 @@ export function Catalog({
 
   const applySearch = useCallback((value: string) => {
     if (getSearchTokens(value).join(" ") === query) return;
-    setAppliedSearch(value.trim());
-    setPage(1);
-  }, [query]);
+    update({ appliedSearch: value.trim(), page: 1 });
+  }, [query, update]);
 
   useEffect(() => {
     if (getSearchTokens(search).join(" ") === query) return;
@@ -88,12 +85,12 @@ export function Catalog({
                 allowWhileLoading
                 disabled={!initialData && !data}
                 aria-controls={data && !failed ? `${id}-items` : undefined}
-                onValueChange={setSearch}
+                onValueChange={(search) => update({ search })}
               />
             </label>
             {search && (
               <Button type="button" variant="ghost" className={styles.control}
-                onClick={() => { setSearch(""); setAppliedSearch(""); setPage(1); searchInput.current?.focus(); }}>
+                onClick={() => { update({ search: "", appliedSearch: "", page: 1 }); searchInput.current?.focus(); }}>
                 Clear
               </Button>
             )}
@@ -106,7 +103,8 @@ export function Catalog({
             <ApplicationScrollContent render={<section />} role="alert" className={styles.message}>
               <h2 className={styles.cardTitle}>We couldn’t load {title.toLowerCase()}.</h2>
               <p>Please try again in a moment.</p>
-              <Button variant="outline" className={styles.control} onClick={() => { if (serverFailed) setServerFailed(false); else void refetch(); }}>Try again</Button>
+              <Button variant="outline" className={styles.control}
+                onClick={() => { if (serverFailed) update({ serverFailed: false }); else void refetch(); }}>Try again</Button>
             </ApplicationScrollContent>
           ) : (
             <ApplicationScrollContent render={<ul />} role="list" aria-label={title} className={styles.grid}>
@@ -132,10 +130,10 @@ export function Catalog({
             {pageCount > 1 && (
               <nav aria-label="Pagination" className={styles.pagination}>
                 <Button variant="outline" className={styles.control} disabled={loading || currentPage === 1} focusableWhenDisabled={loading}
-                  onClick={() => setPage(currentPage - 1)}>Previous</Button>
+                  onClick={() => update({ page: currentPage - 1 })}>Previous</Button>
                 <span className={styles.pageNumber} aria-current="page">Page {currentPage} of {pageCount}</span>
                 <Button variant="outline" className={styles.control} disabled={loading || currentPage === pageCount} focusableWhenDisabled={loading}
-                  onClick={() => setPage(currentPage + 1)}>Next</Button>
+                  onClick={() => update({ page: currentPage + 1 })}>Next</Button>
               </nav>
             )}
           </footer>

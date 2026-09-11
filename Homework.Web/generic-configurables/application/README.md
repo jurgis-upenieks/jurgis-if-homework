@@ -138,3 +138,46 @@ Interaction tests cover intrinsic navigation, focus preservation, and fallback
 recovery. Check fluid sizing in a real browser by measuring rendered element edges
 against the selected tokens in portrait, landscape, and short desktop viewports,
 with normal and enlarged root fonts. Unit tests do not simulate CSS layout.
+
+Automatic deployment updates live in `update/`. The provider uses native
+EventSource to receive the compiled version through one open connection to
+`/api/version`. Azure's current restart-based deployment closes old connections;
+the browser reconnects and receives the new server's version. Server-side comments
+every 25 seconds keep the connection active. There is no client-side version or
+document polling, additional dependency, Azure resource, or deployment hook.
+If a deployment HTTP error stops native reconnection, the updater reopens the
+failed stream after a short delay. Healthy streams stay open without new requests.
+It waits for idle interaction and completed queries and mutations, then atomically
+saves registered state, successful cached queries, scroll, and focus to per-tab
+session storage. A failed write cancels the reload. The next document restores
+models during hydration and scroll and focus after layout; user input stops
+deferred view restoration. Snapshots are URL-scoped, consumed once, and expire
+after 24 hours. A one-minute cooldown prevents rapid repeated reloads if another
+server still returns the previous build.
+
+`ApplicationProviders` installs `ApplicationUpdate` once for the whole app.
+Ordinary TanStack queries need no update-specific options or hooks: the built-in
+`IsRestoringProvider` pauses subscriptions while models and cached queries are
+restored, then each query resumes its normal freshness rules.
+
+Use `useApplicationState("stable-component-key:v1", { field: initialValue })`
+from `application/application-state` for durable UI state. It returns the typed
+state and Zustand's existing state setter. JSON-compatible local stores register
+automatically with the application state context, without property drilling or
+update lifecycle code. Compatible snapshots preserve newly added fields' defaults.
+Keep layout-derived measurements in ordinary React state so the new document
+remeasures the current viewport.
+
+View restoration discovers controls and scroll regions from their existing
+semantic markup: names, labels, link destinations, button text, and IDs within
+landmarks and forms. No update-specific DOM attributes are required. Keep these
+identities stable across releases. Ambiguous matches are skipped rather than
+restoring focus or scroll to the wrong element. Never persist credentials or
+selected files.
+
+Version state and query keys when changing their persisted structure incompatibly.
+The updater cannot preserve arbitrary React internals or live browser resources;
+durable component state must use the application state hook. Existing clients must load this
+feature once before subsequent releases can update them. Deployments that leave
+old servers running require a shared broadcaster to notify their existing streams.
+The root README supplies the same behavior and limits to the static Technical details page.

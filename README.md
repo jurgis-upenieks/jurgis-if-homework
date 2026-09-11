@@ -23,7 +23,7 @@
 
 # 3. Integrating Zustand state management solution into the project to avoid property drilling
  - `npm install zustand`
- - Zustand is available for shared client state when it removes property drilling. Current component-local state needs no store or unused provider scaffolding.
+ - Zustand stores keep resumable search, pagination, and menu state available to the shared application updater without property drilling.
 
 # 4. Integrating TanStack Query solution for managing data retrieval from back-end and external services
  - `npm install @tanstack/react-query`
@@ -74,7 +74,7 @@
  - A half-transparent overlay automatically follows all active TanStack Query requests and mutations. It blocks other controls while the search field remains editable. Its spinner rotates continuously while the overlay fades in over 2 seconds and out over 0.1 second, including with reduced-motion preferences.
  - Search applies after 300 ms without typing, or immediately on form submission with Enter. Equivalent searches preserve the current page and scroll position. Clear cancels pending typing and returns to the first page.
 
-# 12. I have configured so that the "Technical details" page is rendered only on build/compile-time, because it has a fully static contents. The server-side-renderer is never bothered with re-rendering of that page.
+# 12. I have configured the app so that the "Technical details" page is rendered only on build/compile-time, because it has a fully static content. The server-side-renderer is never bothered with re-rendering of that page. Also, it is always automatically fully reflecting the content of the root README.md, because at build-time it takes the texts from the that README.me.
  - This page renders the repository README directly during the build, keeping its content synchronized with this file.
 
 # 13. Locally running or building the app
@@ -92,10 +92,10 @@
 # 15. Technologies stack
  - TypeScript: strong types for product data and component configuration.
  - Node.js 24: runs the app server and deployment packaging; npm manages dependencies and scripts.
- - React and React DOM: product cards, search, pagination, mobile menu, and page hydration.
- - Next.js App Router: server-rendered products, static Technical details, and `/api/products` and `/health` endpoints.
- - Zustand: installed, currently unused.
- - TanStack Query: product fetching, request errors, and the shared loading overlay.
+ - React and React DOM: for implementing custom components - product cards, search, pagination, mobile menu, and page hydration.
+ - Next.js and App Router: for full-stack app, server-rendered products, static Technical details, and `/api/products` and `/health` endpoints.
+ - Zustand: resumable component state for automatic application updates.
+ - TanStack Query: product fetching, request errors, the shared loading overlay, and query-cache restoration.
  - DummyJSON supplies products; Fetch retrieves them server-side and calls `/api/products` client-side.
  - Tailwind CSS, PostCSS, and CSS Modules: responsive product and documentation layouts using theme and `clamp()` tokens.
  - shadcn/ui + Base UI: product cards, search input, pagination buttons, loading overlay, and scrollbars.
@@ -106,3 +106,23 @@
  - Git and GitHub: version control.
  - GitHub Actions: tests, builds, Azure deployment from `main` via OIDC, and production checks.
  - Microsoft Azure App Service on Linux: hosts the Next.js pages and APIs.
+
+# 16. Automatic application updates
+ - Each production build embeds a unique version in the browser bundle, page metadata, and uncached `/api/version` endpoint, including builds that revert older code.
+ - Each browser opens one native EventSource connection to `/api/version`. The server pushes its version immediately; clients do not periodically request version checks.
+ - The current Azure deployment restarts the app. That closes old streams; EventSource reconnects automatically and receives the new server's version.
+ - Server-side keepalive comments keep the stream active. These are not version checks. Offline and suspended devices resume when their connection is restored.
+ - An update waits for 1.5 seconds without interaction, completed data requests and saves, finished text composition, released pointers, and no selected upload files.
+ - After receiving a different version from a connected server, the updater saves a snapshot in that tab's session storage and reloads.
+ - The snapshot restores search text, applied search, pagination, menu state, cached data models, page and content scroll positions, keyboard focus, and input text selection.
+ - The address stays unchanged and the existing theme preference survives. Each tab keeps its own snapshot; snapshots are consumed after restoration and expire after 24 hours.
+ - EventSource reconnects after connection loss; a stream stopped by a deployment HTTP error is reopened after a short delay. Healthy connections make no repeated version requests.
+ - If the snapshot cannot be saved, the app keeps running. Repeated update attempts are limited to at most once per minute.
+ - This is a full page reload with state restoration, so a brief repaint is possible. Network errors are retried normally; live requests, connections, and browser-owned state cannot be serialized.
+ - The global provider handles version signals, cache restoration, scroll, focus, and text selection. Pages need no update-specific query hooks or DOM attributes.
+ - Compatible saved fields survive added state fields; new fields keep their defaults. Incompatible state or data changes require new state or query keys.
+ - Use the standard Zustand-backed `useApplicationState("stable-key:v1", initialState)` for JSON-compatible UI state; its persistence is automatic. TanStack Query's built-in restoring provider pauses query subscriptions until restoration finishes, then normal query freshness rules resume.
+ - Controls and scroll regions are matched using existing names, labels, links, and IDs. Ambiguous matches are skipped. Arbitrary private React state and live browser resources cannot be restored globally.
+ - Clients must load this updater once before future deployments can update them automatically. A tab still running a version from before this feature needs an initial reload.
+ - Development retains Next.js hot reload. Deployment tooling can optionally set `NEXT_PUBLIC_APPLICATION_VERSION` at build time; that value must change for each new release.
+ - No additional Azure service or dependency is required. If future deployments leave old servers running, use a shared push service to notify their connected clients too.

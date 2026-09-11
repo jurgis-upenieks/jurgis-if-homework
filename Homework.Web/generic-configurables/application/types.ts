@@ -15,3 +15,15 @@ export type ApplicationMessageProps = {
 };
 
 export type ApplicationErrorProps = { retry: () => void };
+
+export type ApplicationState = Record<string, ApplicationStateValue>;
+
+
+export type ApplicationNavigationState = { menuOpen: boolean };
+
+type ApplicationStateValue = string | number | boolean | null | ApplicationStateValue[] | { [key: string]: ApplicationStateValue };
+
+export type ApplicationStateScope = {
+  saved: Map<string, ApplicationState>;
+  readStates: Map<string, () => ApplicationState>;
+};

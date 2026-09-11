@@ -8,6 +8,7 @@ export function ApplicationDocument({ children }: PropsWithChildren) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
+        <meta name="application-version" content={process.env.NEXT_PUBLIC_APPLICATION_VERSION} />
         {children}
       </body>
     </html>

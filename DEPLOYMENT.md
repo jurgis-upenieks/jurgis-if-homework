@@ -217,6 +217,20 @@ Ordinary unit tests skip the HTTP checks when `DEPLOYMENT_URL` is unset.
 - `/health` deliberately does not call DummyJSON. An upstream failure can leave
   `/health` successful while the catalogue and its HTTP test fail. The existing
   **Try again** button retries the current JSON data request.
+- Every production build embeds a unique application version. `/api/version`
+  returns JSON for HTTP checks and an event stream for browser EventSource clients.
+  The current deployment's restart closes old streams. Browsers reconnect and the
+  new server pushes its version, triggering an idle reload with a per-tab snapshot.
+  There is no periodic browser version polling or additional Azure service.
+  A deployment HTTP error that stops native reconnection causes the updater to
+  reopen that failed stream after a short delay.
+  Older clients must load this feature once. The workflow verifies that both
+  endpoint formats agree with rendered page metadata and deliver the first event.
+  Streaming responses disable caching and transformation and send keepalives every
+  25 seconds. Any additional reverse proxy must allow streaming without buffering.
+  Enable HTTP/2 in App Service for many simultaneous tabs. If switching to deployments
+  that keep old instances alive, use a shared broadcaster such as Azure Web PubSub.
+  An optional build-time `NEXT_PUBLIC_APPLICATION_VERSION` must be unique per release.
 - Deployment replaces files and restarts the app. A single B1 instance can have
   a brief interruption during deployment. This setup does not provide staging
   slots or automatic rollback.

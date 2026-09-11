@@ -1,12 +1,9 @@
 import "server-only";
 
 import { getQueryClient } from "../query";
+import { isRecord } from "../utils";
 import { getSearchTokens, normalizeSearchText } from "./search";
 import type { CatalogData, CatalogPageProps, CollectionRequest, CollectionSource } from "./types";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 export function loadCollection(source: CollectionSource, { page = 1, pageSize = 12, search = "", signal: requestSignal }: CollectionRequest = {}) {
   return getQueryClient().query({

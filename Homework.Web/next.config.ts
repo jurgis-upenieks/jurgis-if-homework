@@ -1,3 +1,1 @@
-import type { NextConfig } from "next";
-
-export default { output: "standalone" } satisfies NextConfig;
+export { applicationConfig as default } from "./generic-configurables/hosting/application-config";

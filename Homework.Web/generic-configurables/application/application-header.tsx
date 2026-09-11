@@ -4,7 +4,8 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button, Icon } from "../ui";
-import type { ApplicationHeaderProps } from "./types";
+import { useApplicationState } from "./application-state";
+import type { ApplicationHeaderProps, ApplicationNavigationState } from "./types";
 import styles from "./application.module.css";
 
 export function ApplicationHeader({ name, navigation: links, contentId }: ApplicationHeaderProps) {
@@ -15,7 +16,7 @@ export function ApplicationHeader({ name, navigation: links, contentId }: Applic
   const navigation = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const restoreNavigationFocus = useRef(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [{ menuOpen }, update] = useApplicationState<ApplicationNavigationState>(`navigation:${name}:v1`, { menuOpen: false });
   const [compactNavigation, setCompactNavigation] = useState(true);
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export function ApplicationHeader({ name, navigation: links, contentId }: Applic
       const requiredWidth = brandElement.getBoundingClientRect().width + navigationElement.getBoundingClientRect().width + gap;
       const compact = requiredWidth > headerElement.clientWidth;
 
-      if (compact && navigationElement.contains(document.activeElement)) setMenuOpen(true);
+      if (compact && navigationElement.contains(document.activeElement)) update({ menuOpen: true });
       restoreNavigationFocus.current = !compact && document.activeElement === menuButton.current;
       setCompactNavigation(compact);
     });
@@ -39,7 +40,7 @@ export function ApplicationHeader({ name, navigation: links, contentId }: Applic
     observer.observe(brandElement);
     observer.observe(navigationElement);
     return () => observer.disconnect();
-  }, []);
+  }, [update]);
 
   useLayoutEffect(() => {
     if (restoreNavigationFocus.current) {
@@ -64,7 +65,7 @@ export function ApplicationHeader({ name, navigation: links, contentId }: Applic
             hidden={!compactNavigation}
             aria-expanded={menuOpen}
             aria-controls={`${id}-navigation`}
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => update({ menuOpen: !menuOpen })}
           >
             Menu
           </Button>
