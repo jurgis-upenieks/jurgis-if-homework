@@ -6,7 +6,7 @@ export const catalog = {
   title: "Products",
   footerNote: {
     label: "Disclaimer",
-    text: "This website is a job application homework with demo/dummy data only. This is not a real online store. Product information, prices and discounts are sample data from DummyJSON. Nothing is for sale; no orders or payments are accepted.",
+    text: "This is not a real online store. This is a job application homework solution with dummy data only. Nothing is for sale; no orders or payments are possible nor accepted.",
   },
   trendingLabel: "Trending product",
   missingDetail: "Brand unavailable",
