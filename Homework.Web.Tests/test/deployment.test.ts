@@ -2,25 +2,27 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { catalog } from "@/app/catalog";
+import { fetchDeployment } from "@/generic-configurables/hosting/deployment";
 import type { CatalogData } from "@/generic-configurables/catalog/types";
 
 const deploymentUrl = process.env.DEPLOYMENT_URL;
+const request = (path: string | URL) => fetchDeployment(new URL(path, deploymentUrl), process.env.DEPLOYMENT_ID);
 
-describe.runIf(deploymentUrl)("Deployed application", () => {
+describe.runIf(deploymentUrl)("Deployed application", { timeout: 240_000 }, () => {
   let page: Document;
 
   beforeAll(async () => {
-    const response = await fetch(new URL("/", deploymentUrl), { signal: AbortSignal.timeout(60_000) });
+    const response = await request("/");
     expect(response.status).toBe(200);
     page = new DOMParser().parseFromString(await response.text(), "text/html");
-  }, 65_000);
+  }, 240_000);
 
   it("serves the health endpoint", async () => {
-    const response = await fetch(new URL("/health", deploymentUrl), { signal: AbortSignal.timeout(10_000) });
+    const response = await request("/health");
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toEqual({ status: "ok" });
-  }, 15_000);
+  });
 
   it("renders product data and the demo context in the initial HTML", () => {
     const heading = page.querySelector("main > header > h1");
@@ -42,7 +44,7 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
   });
 
   it("serves the README documentation from the standalone package with both navigation destinations", async () => {
-    const response = await fetch(new URL("/technical-details", deploymentUrl), { signal: AbortSignal.timeout(10_000) });
+    const response = await request("/technical-details");
     expect(response.status).toBe(200);
     const details = new DOMParser().parseFromString(await response.text(), "text/html");
     const readme = await readFile(resolve(import.meta.dirname, "../../README.md"), "utf8");
@@ -63,10 +65,10 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     }
 
     expect(details.querySelector('a[aria-current="page"]')?.textContent).toBe("Technical details");
-  }, 15_000);
+  });
 
   it("serves later pages as uncached JSON containing only their own products", async () => {
-    const response = await fetch(new URL("/api/products?page=2", deploymentUrl), { signal: AbortSignal.timeout(15_000) });
+    const response = await request("/api/products?page=2");
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/json");
     expect(response.headers.get("cache-control")).toBe("no-store");
@@ -76,15 +78,15 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     expect(data.items.length).toBeGreaterThan(0);
     expect(data.items.length).toBeLessThanOrEqual(data.pageSize);
     expect(data.total).toBeGreaterThan(data.pageSize);
-  }, 20_000);
+  });
 
   it("serves Technical details from the build cache without regenerating it", async () => {
     for (const path of ["/technical-details", "/technical-details?verify=static"]) {
-      const response = await fetch(new URL(path, deploymentUrl), { signal: AbortSignal.timeout(10_000) });
+      const response = await request(path);
       expect(response.status).toBe(200);
       expect(response.headers.get("x-nextjs-cache")).toBe("HIT");
     }
-  }, 25_000);
+  });
 
   it("serves the JavaScript, styles, and fonts required by the browser", async () => {
     const assets = [...page.querySelectorAll("script[src], link[href]")]
@@ -96,7 +98,7 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     const assetUrls = new Set(assets.map(String));
 
     for (const url of assetUrls) {
-      const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+      const response = await request(url);
       expect(response.status, url).toBe(200);
       expect(response.headers.get("content-type"), url).not.toContain("text/html");
       const content = await response.arrayBuffer();
@@ -110,13 +112,13 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     }
 
     expect([...assetUrls].some((url) => new URL(url).pathname.endsWith(".woff2"))).toBe(true);
-  }, 60_000);
+  });
 
   it("serves the icon and returns a real 404 for missing routes", async () => {
-    const icon = await fetch(new URL("/favicon.ico", deploymentUrl), { signal: AbortSignal.timeout(10_000) });
+    const icon = await request("/favicon.ico");
     expect(icon.status).toBe(200);
     expect(icon.headers.get("content-type")).toContain("image/");
-    const missing = await fetch(new URL("/deployment-check-missing", deploymentUrl), { signal: AbortSignal.timeout(10_000) });
+    const missing = await request("/deployment-check-missing");
     expect(missing.status).toBe(404);
-  }, 25_000);
+  });
 });
