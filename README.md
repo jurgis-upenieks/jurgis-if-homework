@@ -1,5 +1,5 @@
 # 1. Initial empty project creation and repository creation commands
- - First things first, I updated my NodeJS version to latest stable to get the latest security patches for node and npm, which is especially important nowadays to update as frequently as possible, mainly to avoid being hacked by AI cyberattackers.
+ - I use the latest stable versions of Node.js, npm and the underlying technologies. Regular updates improve security by incorporating the latest fixes and improvements.
  - `cd ~/source`
  - `mkdir jurgis-if-homework`
  - `cd jurgis-if-homework`

@@ -429,7 +429,8 @@ describe("Catalogue interaction", () => {
   });
 
   it("makes the results keyboard-focusable and keeps the surrounding controls outside the scroll area", () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
+    const footerNote = "Sample catalogue for demonstration purposes.";
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" footerNote={footerNote} />, firstPage(2));
     const results = screen.getByRole("region", { name: "Products" });
 
     expect(results.tabIndex).toBe(0);
@@ -447,6 +448,10 @@ describe("Catalogue interaction", () => {
     expect(count.textContent).toBe("1–2 of 5");
     expect(pagination.parentElement).toBe(footer);
     expect(footer.parentElement).toBe(screen.getByRole("main"));
+    const note = within(footer).getByText(footerNote);
+    expect(note.tagName).toBe("SMALL");
+    expect(note.parentElement).toBe(footer);
+    expect(note.previousElementSibling).toBe(pagination);
 
     for (const element of [
       screen.getByRole("link", { name: "Homework" }).closest("header"),
@@ -454,9 +459,41 @@ describe("Catalogue interaction", () => {
       screen.getByRole("search"),
       screen.getByRole("status"),
       screen.getByRole("navigation", { name: "Pagination" }),
+      note,
     ]) {
       expect(results.contains(element)).toBe(false);
     }
+  });
+
+  it("keeps the footer note outside the results while loading, after failure, and after an empty recovery", async () => {
+    const footerNote = "Sample catalogue for demonstration purposes.";
+    const pending = Promise.withResolvers<Response>();
+    vi.mocked(fetch).mockReturnValueOnce(pending.promise);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" footerNote={footerNote} />);
+    const note = screen.getByText(footerNote);
+    const footer = note.closest("footer");
+    const results = screen.getByRole("region", { name: "Products", hidden: true });
+
+    expect(footer?.parentElement).toBe(screen.getByRole("main", { hidden: true }));
+    expect(results.contains(note)).toBe(false);
+    expect(screen.getByRole("main", { hidden: true }).getAttribute("aria-busy")).toBe("true");
+    expect(footer?.querySelector("nav")).toBeNull();
+
+    await act(async () => pending.resolve(new Response(null, { status: 502 })));
+    await loaded();
+
+    expect(screen.getByRole("alert").textContent).toContain("We couldn’t load products.");
+    expect(screen.getByText(footerNote).closest("footer")).toBe(footer);
+    expect(footer?.querySelector("nav")).toBeNull();
+
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ ...data, items: [], total: 0, trendingTitle: null }));
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await loaded();
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("No products available.");
+    expect(screen.getByText(footerNote).closest("footer")).toBe(footer);
+    expect(results.contains(screen.getByText(footerNote))).toBe(false);
   });
 
   it("moves the pagination labels below the buttons only when their unwrapped width does not fit", () => {

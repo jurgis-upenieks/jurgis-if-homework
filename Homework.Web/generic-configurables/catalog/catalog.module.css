@@ -78,6 +78,10 @@
   @apply grid items-center gap-clamp-2 self-start;
 }
 
+.footerNote {
+  @apply border-t-(length:--spacing-clamp-0) border-border pt-clamp-2 text-center text-clamp-3 leading-snug text-muted-foreground wrap-anywhere;
+}
+
 .pagination {
   @apply grid min-w-0 grid-cols-[max-content_minmax(min-content,var(--spacing-pagination-info))_max-content] items-center justify-center gap-x-clamp-3 gap-y-clamp-2 text-center;
 }

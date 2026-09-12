@@ -14,7 +14,7 @@ import styles from "./catalog.module.css";
 
 export function Catalog({
   name, title, endpoint, navigation = [{ label: title, href: "/" }], trendingLabel = "Trending item", missingDetail = "Not specified",
-  currency = "EUR", updatedAt = 0,
+  currency = "EUR", footerNote, updatedAt = 0,
 }: CatalogProps) {
   const id = useId();
   const searchInput = useRef<HTMLInputElement>(null);
@@ -155,25 +155,28 @@ export function Catalog({
             </ApplicationScrollContent>
           )}
         </ApplicationScrollViewport>
-        {data && !failed && (
+        {(footerNote || (data && !failed)) && (
           <footer className={styles.paginationRow}>
-            <nav ref={pagination} aria-label={pageCount > 1 ? "Pagination" : undefined} role={pageCount > 1 ? undefined : "presentation"} className={styles.pagination}>
-              {pageCount > 1 && (
-                <Button variant="outline" className={styles.control} disabled={loading || currentPage === 1} focusableWhenDisabled={loading}
-                  onClick={() => update({ page: currentPage - 1 })}>Previous</Button>
-              )}
-              <div className={styles.pageInfo}>
-                {pageCount > 1 && <span aria-current="page">Page {currentPage} of {pageCount}</span>}
-                <p role="status" aria-live="polite" aria-atomic="true">
-                  {total ? `${start + 1}–${start + items.length} of ${total}` : loading ? `Loading ${title.toLowerCase()}…` :
-                    query ? `No ${title.toLowerCase()} match “${appliedSearch}”.` : `No ${title.toLowerCase()} available.`}
-                </p>
-              </div>
-              {pageCount > 1 && (
-                <Button variant="outline" className={styles.control} disabled={loading || currentPage === pageCount} focusableWhenDisabled={loading}
-                  onClick={() => update({ page: currentPage + 1 })}>Next</Button>
-              )}
-            </nav>
+            {data && !failed && (
+              <nav ref={pagination} aria-label={pageCount > 1 ? "Pagination" : undefined} role={pageCount > 1 ? undefined : "presentation"} className={styles.pagination}>
+                {pageCount > 1 && (
+                  <Button variant="outline" className={styles.control} disabled={loading || currentPage === 1} focusableWhenDisabled={loading}
+                    onClick={() => update({ page: currentPage - 1 })}>Previous</Button>
+                )}
+                <div className={styles.pageInfo}>
+                  {pageCount > 1 && <span aria-current="page">Page {currentPage} of {pageCount}</span>}
+                  <p role="status" aria-live="polite" aria-atomic="true">
+                    {total ? `${start + 1}–${start + items.length} of ${total}` : loading ? `Loading ${title.toLowerCase()}…` :
+                      query ? `No ${title.toLowerCase()} match “${appliedSearch}”.` : `No ${title.toLowerCase()} available.`}
+                  </p>
+                </div>
+                {pageCount > 1 && (
+                  <Button variant="outline" className={styles.control} disabled={loading || currentPage === pageCount} focusableWhenDisabled={loading}
+                    onClick={() => update({ page: currentPage + 1 })}>Next</Button>
+                )}
+              </nav>
+            )}
+            {footerNote && <small className={styles.footerNote}>{footerNote}</small>}
           </footer>
         )}
       </main>

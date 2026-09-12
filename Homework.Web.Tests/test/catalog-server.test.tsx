@@ -42,6 +42,8 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     expect(page.querySelectorAll("li s")).toHaveLength(12);
     expect(page.querySelectorAll("li")[10].textContent).toContain("Discount: −10%Discounted price: 9 €Original price: 10 €");
     expect(page.querySelector('[role="status"]')?.textContent).toBe("1–12 of 26");
+    expect(catalog.footerNote).toEqual(expect.any(String));
+    expect(page.querySelector("main > footer > nav + small")?.textContent).toBe(catalog.footerNote);
     expect(page.body.textContent).not.toContain("Product 12");
     expect(fetch).toHaveBeenCalledOnce();
   });
@@ -55,6 +57,8 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     expect(content.props.state.queries[0].state.data).toBeUndefined();
     expect(page.querySelector('[role="alert"]')?.textContent).toContain("We couldn’t load products.");
     expect(page.querySelector('[role="alert"] button')?.textContent).toBe("Try again");
+    expect(page.querySelector("main > footer > small")?.textContent).toBe(catalog.footerNote);
+    expect(page.querySelector("main > footer > nav")).toBeNull();
   });
 
   it("replaces cached products with newer server data when the catalogue mounts again without fetching twice", async () => {
