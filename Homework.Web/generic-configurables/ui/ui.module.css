@@ -42,10 +42,10 @@
   }
 
   .cardContent {
-    @apply col-start-2 row-start-2 flex min-w-0 flex-col gap-content-gap;
+    @apply col-start-2 row-start-2 flex min-w-0 flex-col justify-between gap-clamp-2;
   }
 
   .cardTitle {
-    @apply text-clamp-4 font-semibold wrap-anywhere;
+    @apply min-w-0 truncate text-clamp-4 font-semibold;
   }
 }

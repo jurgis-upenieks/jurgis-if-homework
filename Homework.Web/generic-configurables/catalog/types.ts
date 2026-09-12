@@ -15,7 +15,7 @@ export type CatalogPageProps = {
 export type CollectionSource = {
   url: string;
   collection: string;
-  fields?: Partial<Record<"id" | "title" | "detail" | "amount" | "rank", string>>;
+  fields?: Partial<Record<"id" | "title" | "detail" | "amount" | "rank" | "discountPercentage", string>>;
   minimum?: { field: string; value: number };
 };
 
@@ -25,6 +25,7 @@ type CatalogItem = {
   title: string;
   detail: string | null;
   amount: number;
+  discount?: { percentage: number; amount: number };
 };
 
 export type CatalogData = {

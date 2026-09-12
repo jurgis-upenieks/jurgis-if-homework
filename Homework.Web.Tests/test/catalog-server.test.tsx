@@ -28,6 +28,8 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     expect(content.props.source).toBeUndefined();
     expect(page.querySelectorAll("li")).toHaveLength(12);
     expect(page.querySelector("li h2")?.textContent).toBe("Product 0");
+    expect(page.querySelectorAll("li s")).toHaveLength(12);
+    expect(page.querySelectorAll("li")[10].textContent).toContain("Discount: −10%Discounted price: 9 €Original price: 10 €");
     expect(page.querySelector('[role="status"]')?.textContent).toBe("1–12 of 26");
     expect(page.body.textContent).not.toContain("Product 12");
     expect(fetch).toHaveBeenCalledOnce();
@@ -42,6 +44,21 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     expect(content.props.data).toBeUndefined();
     expect(page.querySelector('[role="alert"]')?.textContent).toContain("We couldn’t load products.");
     expect(page.querySelector('[role="alert"] button')?.textContent).toBe("Try again");
+  });
+
+  it.each([
+    { price: 19.99, percentage: 12.5, discounted: 17.49125, displayed: "Discount: −13%Discounted price: 17,49 €Original price: 19,99 €" },
+    { price: 44.99, percentage: 11.47, discounted: 39.829647, displayed: "Discount: −11%Discounted price: 39,83 €Original price: 44,99 €" },
+  ])("rounds the displayed discount while applying the full percentage to the source price: $percentage%", async ({ price, percentage, discounted, displayed }) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ products: [{ ...products[0], price, discountPercentage: percentage }] })));
+
+    const content = await CatalogPage(catalog);
+    const page = new DOMParser().parseFromString(renderToString(<QueryProvider>{content}</QueryProvider>), "text/html");
+
+    expect(content.props.data.items[0].amount).toBe(price);
+    expect(content.props.data.items[0].discount?.percentage).toBe(percentage);
+    expect(content.props.data.items[0].discount?.amount).toBeCloseTo(discounted, 6);
+    expect(page.querySelector("li")?.textContent).toContain(displayed);
   });
 
   it("returns uncached JSON for the requested page and uses the server's configured page size", async () => {
@@ -59,6 +76,7 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     expect(second.headers.get("Cache-Control")).toBe("no-store");
     expect(data).toMatchObject({ total: 26, page: 2, pageSize: 12, trendingTitle: "Product 25" });
     expect(data.items.map(({ id }) => id)).toEqual(Array.from({ length: 12 }, (_, id) => id + 12));
+    expect(data.items[0]).toMatchObject({ amount: 12, discount: { percentage: 10, amount: 10.8 } });
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 

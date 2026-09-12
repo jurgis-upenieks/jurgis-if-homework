@@ -58,10 +58,22 @@ control height when needed. Constrain grid track minimums with `min(100%, …)` 
 use maximum widths on containers so the scale's lower bounds cannot cause overflow.
 
 The catalogue wraps its toolbar and fits card columns to available space.
-Card insets and title/detail separation use the content gap; brand/price
-separation uses the fine levels, without stretched detail rows or distributed spacing.
-Cards retain their content height; row placement follows normal grid flow.
+Card insets and title/detail separation use the content gap. Cards stretch within
+each grid row, with the brand at the bottom left and pricing at the bottom right.
+The brand retains a level 7 minimum column while long prices can wrap. Product
+titles and brands use single-line ellipsis when their text does not fit.
+Discount badges round to whole percentages for display; the price calculation
+retains the exact source percentage. The badge and diagonal original-price strike
+use the primary theme color.
 An empty results grid is hidden so it cannot introduce an extra empty row's gap.
+
+`ApplicationTextTooltip` is installed once by the application providers. It finds
+text actually clipped by CSS ellipsis or line clamping, without per-use wrappers
+or configuration. Hover, keyboard focus, or a tap reveals the full text in a
+Base UI tooltip. Clipped static text becomes keyboard-focusable while existing
+controls retain their semantics and actions. Escape or an outside press dismisses
+the tooltip. Content, size, and font changes refresh detection; hidden, inert,
+loading, and editable content are excluded.
 
 Catalogue and document pages share the dynamic viewport frame, background,
 content width, page headings, and bounded scrolling content row.

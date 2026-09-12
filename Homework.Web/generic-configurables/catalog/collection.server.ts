@@ -28,7 +28,7 @@ export function loadCollection(source: CollectionSource, { page = 1, pageSize = 
         throw new Error("Catalogue response must contain a collection.");
       }
 
-      const fields = { id: "id", title: "title", detail: "detail", amount: "amount", rank: "rank", ...source.fields };
+      const fields = { id: "id", title: "title", detail: "detail", amount: "amount", rank: "rank", discountPercentage: "discountPercentage", ...source.fields };
       const size = Number.isFinite(pageSize) ? Math.max(1, Math.floor(pageSize)) : 12;
       const tokens = getSearchTokens(search);
       const data: CatalogData = { items: [], trendingTitle: null, total: 0, page: 1, pageSize: size };
@@ -45,6 +45,7 @@ export function loadCollection(source: CollectionSource, { page = 1, pageSize = 
         const detail = row[fields.detail];
         const amount = row[fields.amount];
         const rank = row[fields.rank];
+        const discountPercentage = row[fields.discountPercentage];
         const minimumValue = source.minimum ? row[source.minimum.field] : undefined;
 
         if (
@@ -53,6 +54,7 @@ export function loadCollection(source: CollectionSource, { page = 1, pageSize = 
           typeof amount !== "number" || !Number.isFinite(amount) || amount < 0 ||
           typeof rank !== "number" || !Number.isFinite(rank) ||
           (detail != null && typeof detail !== "string") ||
+          (discountPercentage !== undefined && (typeof discountPercentage !== "number" || !Number.isFinite(discountPercentage) || discountPercentage < 0 || discountPercentage > 100)) ||
           (source.minimum && (typeof minimumValue !== "number" || !Number.isFinite(minimumValue)))
         ) {
           throw new Error("Catalogue entry has invalid fields.");
@@ -72,7 +74,10 @@ export function loadCollection(source: CollectionSource, { page = 1, pageSize = 
         const searchableTitle = normalizeSearchText(title);
 
         if ((!source.minimum || (typeof minimumValue === "number" && minimumValue >= source.minimum.value)) && tokens.every((token) => searchableTitle.includes(token))) {
-          data.items.push({ id, title, detail: typeof detail === "string" ? detail.trim() || null : null, amount });
+          data.items.push({
+            id, title, detail: typeof detail === "string" ? detail.trim() || null : null, amount,
+            discount: typeof discountPercentage === "number" && discountPercentage > 0 ? { percentage: discountPercentage, amount: amount * ((100 - discountPercentage) / 100) } : undefined,
+          });
         }
       }
 

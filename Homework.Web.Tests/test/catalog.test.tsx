@@ -279,6 +279,7 @@ describe("Catalogue interaction", () => {
     expect(within(cards[0]).getByText("Apple")).toBeTruthy();
     expect(within(cards[0]).getByText(/549\s*€/)).toBeTruthy();
     expect(within(cards[2]).getByText(/899,99\s*€/)).toBeTruthy();
+    expect(cards.every((card) => !card.querySelector("s"))).toBe(true);
     expect(screen.getByText("Trending product:").parentElement?.textContent).toContain(data.trendingTitle);
   });
 
@@ -290,6 +291,22 @@ describe("Catalogue interaction", () => {
 
     await waitFor(() => expect(screen.getAllByRole("listitem").map((item) => within(item).getByRole("heading").textContent)).toEqual(items.toReversed().map((item) => item.title)));
     expect(error.mock.calls.flat().join(" ")).not.toMatch(/same key|unique.*key/);
+  });
+
+  it.each([
+    { percentage: 50, displayedPercentage: 50, amount: 100, original: 200, price: "100 €", originalPrice: "200 €" },
+    { percentage: 12.34, displayedPercentage: 12, amount: 17.523234, original: 19.99, price: "17,52 €", originalPrice: "19,99 €" },
+    { percentage: 12.5, displayedPercentage: 13, amount: 17.49125, original: 19.99, price: "17,49 €", originalPrice: "19,99 €" },
+    { percentage: 100, displayedPercentage: 100, amount: 0, original: 200, price: "0 €", originalPrice: "200 €" },
+  ])("shows a whole discount, the supplied reduced price, and semantic original price: $percentage%", ({ percentage, displayedPercentage, amount, original, price, originalPrice }) => {
+    const items = [{ ...data.items[0], amount: original, discount: { percentage, amount } }];
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={{ ...data, items, total: 1 }} />);
+
+    const card = screen.getByRole("article");
+
+    expect(within(card).getByText(`−${displayedPercentage}%`).textContent).toBe(`Discount: −${displayedPercentage}%`);
+    expect(card.querySelector("strong")?.textContent).toBe(`Discounted price: ${price}`);
+    expect(card.querySelector("s")?.textContent).toBe(`Original price: ${originalPrice}`);
   });
 
   it("requests title searches across every page, ignoring case and surrounding whitespace", async () => {

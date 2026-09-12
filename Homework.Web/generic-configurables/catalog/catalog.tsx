@@ -5,7 +5,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ApplicationHeader } from "../application/application-header";
 import { ApplicationScrollArea, ApplicationScrollContent, ApplicationScrollViewport } from "../application/application-scroll-area";
 import { useApplicationState } from "../application/application-state";
-import { Button, Card, Input } from "../ui";
+import { Button, Card, Input, useTextFit } from "../ui";
 import { getSearchTokens } from "./search";
 import type { CatalogData, CatalogProps } from "./types";
 import layout from "../application/application.module.css";
@@ -18,6 +18,7 @@ export function Catalog({
   const id = useId();
   const searchInput = useRef<HTMLInputElement>(null);
   const results = useRef<HTMLDivElement>(null);
+  const fitText = useTextFit();
   const [{ search, appliedSearch, page, serverFailed }, update] = useApplicationState(`catalog:${endpoint}:v1`, { search: "", appliedSearch: "", page: 1, serverFailed: initialFailed });
   const query = getSearchTokens(appliedSearch).join(" ");
   const { data, isError, isFetching, refetch } = useQuery({
@@ -113,7 +114,19 @@ export function Catalog({
                   <Card title={item.title} className={layout.card}>
                     <p className={styles.details}>
                       <span className={styles.detail}>{item.detail ?? missingDetail}</span>
-                      <span className={styles.price}>{formatter.format(item.amount)}</span>
+                      <span className={styles.pricing}>
+                        {item.discount && (
+                          <span className={styles.discount}>
+                            <span className="sr-only">Discount: </span>−{Math.round(item.discount.percentage)}%
+                          </span>
+                        )}
+                        <span className={styles.prices}>
+                          <strong ref={fitText} className={styles.price}>
+                            <span className="sr-only">{item.discount ? "Discounted price: " : "Price: "}</span>{formatter.format(item.discount?.amount ?? item.amount)}
+                          </strong>
+                          {item.discount && <s ref={fitText} className={styles.originalPrice}><span className="sr-only">Original price: </span>{formatter.format(item.amount)}</s>}
+                        </span>
+                      </span>
                     </p>
                   </Card>
                 </li>

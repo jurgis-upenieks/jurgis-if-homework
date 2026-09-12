@@ -1,0 +1,42 @@
+@reference "./application.css";
+
+:global([data-text-tooltip-focusable]) {
+  @apply focus-visible:outline-(length:--spacing-clamp-1) focus-visible:-outline-offset-(--spacing-clamp-1);
+}
+
+.positioner {
+  @apply z-50 max-w-(--available-width);
+}
+
+.positioner[data-anchor-hidden] {
+  @apply invisible pointer-events-none;
+}
+
+.popup {
+  @apply relative grid max-w-clamp-9 grid-cols-[0_minmax(0,1fr)_0] grid-rows-[0_auto_0] gap-x-clamp-2 gap-y-clamp-1;
+  @apply rounded-clamp-2 border-(length:--spacing-clamp-0) border-border bg-foreground text-clamp-3 text-background shadow-clamp-2 shadow-primary/20;
+}
+
+.popup > span {
+  @apply col-start-2 row-start-2 whitespace-pre-wrap wrap-anywhere;
+}
+
+.arrow {
+  @apply pointer-events-none size-[calc(var(--spacing-clamp-2)*2)] rotate-45 border-border bg-foreground data-uncentered:invisible;
+}
+
+.arrow[data-side="top"] {
+  @apply -bottom-clamp-2 border-r-(length:--spacing-clamp-0) border-b-(length:--spacing-clamp-0);
+}
+
+.arrow[data-side="bottom"] {
+  @apply -top-clamp-2 border-t-(length:--spacing-clamp-0) border-l-(length:--spacing-clamp-0);
+}
+
+.arrow[data-side="left"] {
+  @apply -right-clamp-2 border-t-(length:--spacing-clamp-0) border-r-(length:--spacing-clamp-0);
+}
+
+.arrow[data-side="right"] {
+  @apply -left-clamp-2 border-b-(length:--spacing-clamp-0) border-l-(length:--spacing-clamp-0);
+}

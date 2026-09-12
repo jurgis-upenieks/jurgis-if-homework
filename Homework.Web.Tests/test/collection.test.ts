@@ -31,8 +31,8 @@ describe("Server catalogue retrieval", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch).toHaveBeenCalledWith(source.url, { cache: "no-store", signal: expect.any(AbortSignal) });
     expect(result.items).toEqual([
-      { id: 2, title: "Exact threshold", detail: "Second", amount: 10 },
-      { id: 3, title: "Above threshold", detail: null, amount: 0 },
+      { id: 2, title: "Exact threshold", detail: "Second", amount: 10, discount: { percentage: 10, amount: 9 } },
+      { id: 3, title: "Above threshold", detail: null, amount: 0, discount: { percentage: 10.01, amount: 0 } },
     ]);
     expect(result.trendingTitle).toBe("Below threshold");
     expect(result).toMatchObject({ total: 2, page: 1, pageSize: 12 });
@@ -47,6 +47,34 @@ describe("Server catalogue retrieval", () => {
     expect(result.items).toHaveLength(12);
     expect(result.total).toBe(40);
     expect(result.trendingTitle).toBe("Product 35");
+  });
+
+  it.each([
+    { price: 200, percentage: 50, discounted: 100 },
+    { price: 19.99, percentage: 12.34, discounted: 17.523234 },
+    { price: 200, percentage: 100, discounted: 0 },
+  ])("calculates the discounted amount while preserving the original price: $percentage%", async ({ price, percentage, discounted }) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ products: [{ ...products[1], price, discountPercentage: percentage }] })));
+
+    const { items } = await loadCollection(source);
+
+    expect(items[0].amount).toBe(price);
+    expect(items[0].discount?.percentage).toBe(percentage);
+    expect(items[0].discount?.amount).toBeCloseTo(discounted, 6);
+  });
+
+  it("supports a mapped discount field and leaves zero discounts as regular prices", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => Response.json({ entries: [
+      { id: 1, title: "Sale", amount: 200, rank: 1, reduction: 50 },
+      { id: 2, title: "Regular", amount: 200, rank: 1, reduction: 0 },
+    ] })));
+
+    const { items } = await loadCollection({ url: "https://example.test/entries", collection: "entries", fields: { discountPercentage: "reduction" } });
+
+    expect(items).toEqual([
+      { id: 1, title: "Sale", detail: null, amount: 200, discount: { percentage: 50, amount: 100 } },
+      { id: 2, title: "Regular", detail: null, amount: 200 },
+    ]);
   });
 
   it("fetches again on every request and returns changes from the external service", async () => {
@@ -125,7 +153,7 @@ describe("Server catalogue retrieval", () => {
       const result = await loadCollection(source, { search, page: 2, pageSize: 1 });
 
       expect(result).toMatchObject({ total: 2, page: 2, pageSize: 1, trendingTitle: rows[4].title });
-      expect(result.items).toEqual([{ id: 2, title: rows[1].title, detail: rows[1].brand, amount: rows[1].price }]);
+      expect(result.items).toEqual([{ id: 2, title: rows[1].title, detail: rows[1].brand, amount: rows[1].price, discount: { percentage: 10, amount: 9 } }]);
     },
   );
 
@@ -180,6 +208,9 @@ describe("Server catalogue retrieval", () => {
     { products: [{ ...products[1], price: -1 }] },
     { products: [{ ...products[1], rating: null }] },
     { products: [{ ...products[1], discountPercentage: null }] },
+    { products: [{ ...products[1], discountPercentage: "50" }] },
+    { products: [{ ...products[1], discountPercentage: -1 }] },
+    { products: [{ ...products[1], discountPercentage: 100.01 }] },
     { products: [{ ...products[1], brand: {} }] },
     { products: [{ ...products[1], id: null }] },
     { products: [products[1], products[1]] },
