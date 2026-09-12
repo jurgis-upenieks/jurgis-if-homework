@@ -1,0 +1,37 @@
+@reference "../application/application.css";
+
+[data-text-fit][data-text-fit="90"] {
+  @apply text-[length:calc(var(--text-fit-size)*0.9)];
+}
+
+[data-text-fit][data-text-fit="80"] {
+  @apply text-[length:calc(var(--text-fit-size)*0.8)];
+}
+
+[data-text-fit][data-text-fit="70"] {
+  @apply text-[length:calc(var(--text-fit-size)*0.7)];
+}
+
+[data-text-fit][data-text-fit="60"] {
+  @apply text-[length:calc(var(--text-fit-size)*0.6)];
+}
+
+[data-text-fit][data-text-fit="50"] {
+  @apply text-[length:calc(var(--text-fit-size)*0.5)];
+}
+
+[data-text-fit][data-text-fit="40"] {
+  @apply text-[length:calc(var(--text-fit-size)*0.4)];
+}
+
+[data-text-fit][data-text-fit="30"] {
+  @apply text-[length:calc(var(--text-fit-size)*0.3)];
+}
+
+[data-text-fit][data-text-fit="20"] {
+  @apply text-[length:calc(var(--text-fit-size)*0.2)];
+}
+
+[data-text-fit][data-text-fit="10"] {
+  @apply text-[length:calc(var(--text-fit-size)*0.1)];
+}

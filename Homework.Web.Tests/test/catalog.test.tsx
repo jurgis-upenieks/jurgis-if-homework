@@ -349,6 +349,35 @@ describe("Catalogue interaction", () => {
     expect(card.querySelector("s")?.textContent).toBe(`Original price: ${originalPrice}`);
   });
 
+  it.each([false, true])("fits long card prices and restores their size when space returns, discounted: %s", async (discounted) => {
+    vi.useFakeTimers();
+    vi.stubGlobal("CSS", { supports: () => false });
+    const item = { ...data.items[0], amount: 2499.99, ...(discounted && { discount: { percentage: 14.4, amount: 2139.99 } }) };
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, { ...data, items: [item], total: 1 });
+    const prices = Array.from(screen.getByRole("article").querySelectorAll<HTMLElement>("strong, s"));
+    const labels = prices.map((price) => price.textContent);
+    let available = 80;
+    for (const price of prices) {
+      Object.defineProperties(price, {
+        clientWidth: { configurable: true, get: () => available },
+        scrollWidth: { configurable: true, get: () => 2 * Number(price.dataset.textFit ?? 100) },
+      });
+    }
+
+    fireEvent.resize(window);
+    await act(async () => vi.advanceTimersByTimeAsync(20));
+    expect(prices).toHaveLength(discounted ? 2 : 1);
+    expect(prices.every((price) => price.scrollWidth <= price.clientWidth)).toBe(true);
+    expect(prices.every((price) => price.hasAttribute("data-text-fit"))).toBe(true);
+    expect(prices.map((price) => price.textContent)).toEqual(labels);
+
+    available = 240;
+    fireEvent.resize(window);
+    await act(async () => vi.advanceTimersByTimeAsync(20));
+    expect(prices.every((price) => !price.hasAttribute("data-text-fit"))).toBe(true);
+    expect(prices.map((price) => price.textContent)).toEqual(labels);
+  });
+
   it("requests title searches across every page, ignoring case and surrounding whitespace", async () => {
     render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     const count = screen.getByRole("status");

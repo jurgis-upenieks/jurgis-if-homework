@@ -6,7 +6,7 @@ import { useStore } from "zustand";
 import { createStore } from "zustand/vanilla";
 import { ApplicationHeader } from "../application/application-header";
 import { ApplicationScrollArea, ApplicationScrollContent, ApplicationScrollViewport } from "../application/application-scroll-area";
-import { Button, Card, Input } from "../ui";
+import { Button, Card, Input, useTextFit } from "../ui";
 import { getSearchTokens } from "./search";
 import type { CatalogData, CatalogProps } from "./types";
 import layout from "../application/application.module.css";
@@ -20,6 +20,7 @@ export function Catalog({
   const searchInput = useRef<HTMLInputElement>(null);
   const results = useRef<HTMLDivElement>(null);
   const pagination = useRef<HTMLElement>(null);
+  const fitText = useTextFit();
   const [store] = useState(() => createStore(() => ({ search: "", appliedSearch: "", page: 1 })));
   const { search, appliedSearch, page } = useStore(store);
   const update = store.setState;
@@ -142,10 +143,10 @@ export function Catalog({
                           </span>
                         )}
                         <span className={styles.prices}>
-                          <strong className={styles.price}>
+                          <strong ref={fitText} className={styles.price}>
                             <span className="sr-only">{item.discount ? "Discounted price: " : "Price: "}</span>{formatter.format(item.discount?.amount ?? item.amount)}
                           </strong>
-                          {item.discount && <s className={styles.originalPrice}><span className="sr-only">Original price: </span>{formatter.format(item.amount)}</s>}
+                          {item.discount && <s ref={fitText} className={styles.originalPrice}><span className="sr-only">Original price: </span>{formatter.format(item.amount)}</s>}
                         </span>
                       </span>
                     </p>

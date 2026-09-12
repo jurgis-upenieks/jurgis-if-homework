@@ -61,9 +61,11 @@ use maximum widths on containers so the scale's lower bounds cannot cause overfl
 The catalogue wraps its toolbar and fits card columns to available space.
 Card insets use the content gap; title/detail separation uses level 2. Cards stretch within
 each grid row, with the brand at the bottom left and pricing at the bottom right.
-The brand retains a level 7 minimum column while long prices wrap. Current prices
-use level 4 text and original prices use level 3, retaining their central minimums
-without measured text shrinking. Shared card padding applies the content gap once.
+The brand retains a level 7 minimum column while current and original prices stay
+on one line. Prices start at text levels 4 and 3; `useTextFit` reduces overflowing
+text relative to those central clamp values and restores its size when space returns.
+It uses native text fitting when available, with a measured fallback that responds
+to container, viewport, content, and font changes. Shared card padding applies the content gap once.
 Product titles and brands use single-line ellipsis when their text does not fit.
 Discount badges round to whole percentages for display; the price calculation
 retains the exact source percentage. The badge and diagonal original-price strike
