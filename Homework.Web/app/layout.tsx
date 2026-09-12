@@ -6,4 +6,5 @@ export { ApplicationLayout as default } from "@/generic-configurables/applicatio
 export const metadata: Metadata = {
   title: "Products | Homework",
   description: "Browse products with discounts of at least 10%, search by title, and discover the highest-rated product.",
+  verification: { google: "4Mv7-v0DxEyVExMEXEOM7Ladhg1G93EODRpnWU6j0LM" },
 };
