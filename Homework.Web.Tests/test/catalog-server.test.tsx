@@ -37,6 +37,8 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     expect(content.props.state.queries).toHaveLength(1);
     expect(content.props.state.queries[0].state.data).toMatchObject({ total: 26, page: 1, pageSize: 12 });
     expect(content.props.children.props.source).toBeUndefined();
+    expect(page.querySelector("main > header > h1")?.textContent).toBe(catalog.title);
+    expect(page.querySelector("main > header > p")?.textContent).toBe(`${catalog.trendingLabel}: Product 25`);
     expect(page.querySelectorAll("li")).toHaveLength(12);
     expect(page.querySelector("li h2")?.textContent).toBe("Product 0");
     expect(page.querySelectorAll("li s")).toHaveLength(12);
@@ -55,7 +57,7 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     const page = new DOMParser().parseFromString(renderToString(<QueryProvider>{content}</QueryProvider>), "text/html");
 
     expect(content.props.state.queries[0].state.data).toBeUndefined();
-    expect(page.querySelector('[role="alert"]')?.textContent).toContain("We couldn’t load products.");
+    expect(page.querySelector('[role="alert"]')?.textContent).toContain(`We couldn’t load ${catalog.title.toLowerCase()}.`);
     expect(page.querySelector('[role="alert"] button')?.textContent).toBe("Try again");
     expect(page.querySelector("main > footer > small")?.textContent).toBe(catalog.footerNote);
     expect(page.querySelector("main > footer > nav")).toBeNull();
@@ -83,7 +85,7 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     const fetch = vi.fn().mockRejectedValueOnce(new Error("Unavailable")).mockResolvedValueOnce(Response.json({ products }));
     vi.stubGlobal("fetch", fetch);
     const first = render(await CatalogPage(catalog), { wrapper: QueryProvider });
-    expect(screen.getByRole("alert").textContent).toContain("We couldn’t load products.");
+    expect(screen.getByRole("alert").textContent).toContain(`We couldn’t load ${catalog.title.toLowerCase()}.`);
     first.unmount();
 
     render(await CatalogPage(catalog), { wrapper: QueryProvider });

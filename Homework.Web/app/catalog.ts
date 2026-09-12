@@ -3,9 +3,9 @@ import { site } from "./site";
 
 export const catalog = {
   ...site,
-  title: "Products",
-  footerNote: "This website is a job application homework assignment. All products, prices and related information are sample data. This is not an online store; no products are offered for sale.",
-  trendingLabel: "Trending product",
+  title: "Demo products",
+  footerNote: "Job application homework demo using DummyJSON sample data. Products, prices and discounts are examples only. This is not an online store; no orders or payments are accepted.",
+  trendingLabel: "Highest-rated sample",
   missingDetail: "Brand unavailable",
   endpoint: "/api/products",
   source: {

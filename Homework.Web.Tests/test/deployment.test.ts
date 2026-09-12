@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
+import { catalog } from "@/app/catalog";
 import type { CatalogData } from "@/generic-configurables/catalog/types";
 
 const deploymentUrl = process.env.DEPLOYMENT_URL;
@@ -21,10 +22,22 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     expect(await response.json()).toEqual({ status: "ok" });
   }, 15_000);
 
-  it("retrieves and renders product data on the server", () => {
-    expect(page.title).toBe("Products | Homework");
-    expect(page.querySelectorAll('ul[aria-label="Products"] > li').length).toBeGreaterThan(0);
-    expect(page.querySelectorAll('ul[aria-label="Products"] > li').length).toBeLessThanOrEqual(12);
+  it("renders product data and the demo context in the initial HTML", () => {
+    const heading = page.querySelector("main > header > h1");
+    const note = page.querySelector("main > footer > small");
+    const results = page.querySelector(`[role="region"][aria-label="${catalog.title}"]`);
+
+    expect(page.title).toBe(`${catalog.title} | ${catalog.name}`);
+    expect(heading?.textContent).toBe(catalog.title);
+    expect(heading?.closest('[hidden], [aria-hidden="true"]')).toBeNull();
+    expect(page.querySelectorAll(`ul[aria-label="${catalog.title}"] > li`).length).toBeGreaterThan(0);
+    expect(page.querySelectorAll(`ul[aria-label="${catalog.title}"] > li`).length).toBeLessThanOrEqual(12);
+    expect(catalog.footerNote.trim().length).toBeGreaterThan(0);
+    expect(note?.textContent).toBe(catalog.footerNote);
+    expect(note?.textContent).toMatch(/sample data/i);
+    expect(note?.textContent).toMatch(/no orders or payments/i);
+    expect(note?.closest('[hidden], [aria-hidden="true"]')).toBeNull();
+    expect(results?.contains(note)).toBe(false);
     expect(page.querySelector('[role="alert"]')).toBeNull();
   });
 
