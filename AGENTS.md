@@ -39,11 +39,10 @@
 ## 7. Styling:
 - 7.1. All styling should be used from the Tailwind css classes system.
 - 7.2. MUST NOT write custom styles, but only what is already provided by Tailwind system.
-- 7.3. In styling code for spacing between elements MUST NOT use paddings and margins. Instead, MUST use `gap` spacings approach.
-- 7.4. In styling code MUST NOT use direct hard-coded color codes, sizes, fonts, and other hardcoded stuff, but instead MUST use theme variables, preferably picking from the already available ones.
-- 7.5. In styling code MUST NOT use direct css style attributes, but instead MUST use `@apply` approach.
-- 7.6. Layout should be 100% responsive - looking good and usable on any size and aspect ratio screens and touch screens.
-- 7.7. Never hard-code any spaces (inner, outer, in-between) and sizes, but only use the fully dynamic responsive custom standardized centralized css 'clamp' function system.
+- 7.3. In styling code MUST NOT use direct hard-coded color codes, sizes, fonts, and other hardcoded stuff, but instead MUST use theme variables, preferably picking from the already available ones.
+- 7.4. In styling code MUST NOT use direct css style attributes, but instead MUST use `@apply` approach.
+- 7.5. Layout should be 100% responsive - looking good and usable on any size and aspect ratio screens and touch screens.
+- 7.6. Never hard-code any spaces (inner, outer, in-between) or sizes for texts and other elements, but only use the fully dynamic responsive custom standardized centralized css 'clamp' function system, which is already implemented in this project in a central place. This is to make sure that the site contents are looking good and usable on any screen size and aspect ratio, and all sizes and spaces are standardized throughout the entire app.
 
 ## 8. Templates:
 - 8.1. MUST NOT make a div-soup, div-soup is not allowed.
