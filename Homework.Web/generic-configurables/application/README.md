@@ -9,8 +9,8 @@ contributions keep laptop and desktop sizes close to the original scale. Levels 
 growing at their caps on larger displays. The rem contribution can sit below the
 minimum so compact screens reach the lower bound instead of starting above it.
 The bounds and rem contributions scale with the user's font preference. Secondary
-text, body text, and touch controls retain minima of 0.875rem, 1rem, and 2.75rem;
-borders and focus outlines retain their existing minima too.
+text and body text retain minima of 0.875rem and 1rem; buttons and input frames
+retain their 2.75rem minimum. Borders and focus outlines retain their existing minima too.
 
 Use one level from 0 to 10 through Tailwind: `gap-clamp-2`, `size-clamp-6`,
 `min-h-clamp-7`, `max-w-clamp-10`, `text-clamp-4`, or `rounded-clamp-2`.
@@ -26,8 +26,8 @@ scales. For other length utilities, use the token directly, for example
 | 3 | 0.875rem | 1.275rem | Secondary text |
 | 4 | 1rem | 1.53rem | Body text and card gaps |
 | 5 | 1rem | 2.55rem | Section gaps and brand text |
-| 6 | 1.5rem | 4.08rem | Page headings and brand marks |
-| 7 | 2.75rem | 4.59rem | Navigation targets and loading spinner |
+| 6 | 1.5rem | 4.08rem | Page headings, brand marks, and header link targets |
+| 7 | 2.75rem | 4.59rem | Header minimum height and loading spinner |
 | 8 | 3rem | 8.16rem | Header height and button width |
 | 9 | 10rem | 28.56rem | Card minimum width and search width |
 | 10 | 32rem | 97.92rem | Page maximum width |
@@ -85,9 +85,9 @@ fit the controls and this minimum, the document can scroll to keep every region
 reachable. Normal viewports retain the existing bounded layout and fixed controls.
 Loading and error content use the same bounded content row.
 The shared Base UI scroll area places its vertical track at the far right, from
-the site header's bottom edge to the visible viewport's bottom edge. The page grid
-reserves the header's intrinsic height and the existing clamp gaps, so the track
-follows header wrapping and menu expansion without measured offsets.
+the toolbar or page heading's bottom edge to the visible viewport's bottom edge.
+The page grid reserves the header and toolbar or heading's intrinsic heights and
+the existing clamp gaps, so the track follows wrapping without measured offsets.
 When the main content includes a footer, its rows use the page's subgrid and the
 track ends at the footer's top edge. The footer keeps its intrinsic height as its
 controls wrap; pages without a footer keep the track down to the viewport bottom.
@@ -136,17 +136,28 @@ before distributing spare dynamic viewport height. Gaps range from level 2 to
 the layout gap; the header band caps at the smaller of level 8 and four layout
 gaps while its contents determine its minimum height. Narrow and short screens
 therefore reserve more room for results without changing text or control sizes.
-The pagination row preserves the result count's minimum word width and lets
-the controls wrap into the remaining space; wider screens retain centered pagination.
+The pagination row centers the result count below the page number between Previous
+and Next with matching typography and a level 3 horizontal gap. Its middle column
+uses the `pagination-info` token, eight times the level 3 font size, keeping the
+buttons steady as the text changes. A ResizeObserver compares the unwrapped labels
+with the space left between the buttons and moves both labels to a centered row
+below the buttons only when they no longer fit. Both lines retain the displayed
+page's values until the next page arrives.
 
-Navigation collapses only when its measured content and clamp gap no longer fit.
-Its ResizeObserver changes visibility, never sizes or styles. Hidden navigation
-remains measurable and inert; keyboard focus survives expansion and collapse.
-There are no viewport breakpoints. The shared message component also supplies
+Navigation stays visible and wraps when its content and clamp gaps no longer fit.
+The header uses native flex wrapping without a menu button or viewport breakpoints.
+Brand and navigation links use level 6 minimum heights, retaining targets of at
+least 1.5rem while keeping wrapped rows compact. Both wrapping containers use
+level 2 vertical gaps. The outer header grid uses zero-height edge rows and the
+`header-gap` token above and below its content, preserving breathing room when
+navigation wraps. That token divides the spare height between the viewport band
+or level 7 minimum and the larger of the brand mark or its text line. The
+single-row header keeps its existing height and centered alignment.
+The shared message component also supplies
 the not-found, route-error, and global-error screens, including the independent
 document required when the root layout fails.
 
-Interaction tests cover intrinsic navigation, focus preservation, and fallback
+Interaction tests cover navigation destinations, visibility, and fallback
 recovery. Check fluid sizing in a real browser by measuring rendered element edges
 against the selected tokens in portrait, landscape, and short desktop viewports,
 with normal and enlarged root fonts. Unit tests do not simulate CSS layout.

@@ -85,7 +85,7 @@
 # 16. Technologies stack
  - TypeScript: strong types for business domain model data and component configuration.
  - Node.js 24 and npm: runs the app server and deployment packaging; npm manages dependencies and scripts.
- - React and React DOM: for implementing custom components - product cards, search, pagination, mobile menu, and page hydration.
+ - React and React DOM: for implementing custom components - product cards, search, pagination, navigation, and page hydration.
  - Next.js and App Router: for full-stack app, server-rendered products, static Technical details, and `/api/products` and `/health` endpoints.
  - Zustand: central data access state management solution to avoid default property drilling.
  - TanStack Query: manager remote calls to from client-side to server-side and to external service side - product fetching, request errors, the shared loading overlay, and query-cache restoration.

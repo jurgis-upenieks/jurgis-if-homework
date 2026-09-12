@@ -59,7 +59,7 @@ Catalogue tests cover uncached server retrieval and validation, the inclusive
 discount threshold, global ranking, server-rendered first-page data, JSON page
 requests, title-only search across pages, pagination boundaries, cancellation,
 fresh data on revisits, immediate form submission, empty and recoverable error states.
-Header tests cover navigation destinations, intrinsic resizing, and keyboard focus.
+Header tests cover navigation destinations, current-page indicators, and access without a menu button.
 Update tests cover pushed deployment events, absence of periodic requests, idle and offline deferral,
 pending saves and selected files, snapshot failures, compatible state additions, global cache restoration, implicit semantic scroll and focus recovery, ambiguous controls,
 and reload throttling. Streaming tests cover immediate delivery, reconnection after

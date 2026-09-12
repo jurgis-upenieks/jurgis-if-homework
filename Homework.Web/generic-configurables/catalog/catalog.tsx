@@ -18,6 +18,7 @@ export function Catalog({
   const id = useId();
   const searchInput = useRef<HTMLInputElement>(null);
   const results = useRef<HTMLDivElement>(null);
+  const pagination = useRef<HTMLElement>(null);
   const fitText = useTextFit();
   const [{ search, appliedSearch, page, serverFailed }, update] = useApplicationState(`catalog:${endpoint}:v1`, { search: "", appliedSearch: "", page: 1, serverFailed: initialFailed });
   const query = getSearchTokens(appliedSearch).join(" ");
@@ -63,6 +64,27 @@ export function Catalog({
   useLayoutEffect(() => {
     if (results.current) results.current.scrollTop = 0;
   }, [page, currentPage, query]);
+
+  useLayoutEffect(() => {
+    const element = pagination.current;
+    if (!element || pageCount <= 1) return;
+    const [previous, info, next] = element.children;
+    const labels = Array.from(info.children);
+    const fit = () => {
+      const gap = Number.parseFloat(getComputedStyle(element).columnGap) || 0;
+      const available = element.getBoundingClientRect().width - previous.getBoundingClientRect().width - next.getBoundingClientRect().width - gap * 2;
+      const required = Math.max(...labels.map((label) => label.getBoundingClientRect().width));
+      element.toggleAttribute("data-stacked", required > available);
+    };
+    const observer = new ResizeObserver(fit);
+    for (const target of [element, previous, next, ...labels]) observer.observe(target);
+    fit();
+
+    return () => {
+      observer.disconnect();
+      element.removeAttribute("data-stacked");
+    };
+  }, [pageCount, failed]);
 
   return (
     <ApplicationScrollArea>
@@ -136,19 +158,23 @@ export function Catalog({
         </ApplicationScrollViewport>
         {data && !failed && (
           <footer className={styles.paginationRow}>
-            <p role="status" aria-live="polite" aria-atomic="true" className={styles.resultCount}>
-              {loading ? `Loading ${title.toLowerCase()}…` : total ? `${start + 1}–${start + items.length} of ${total}` :
-                query ? `No ${title.toLowerCase()} match “${appliedSearch}”.` : `No ${title.toLowerCase()} available.`}
-            </p>
-            {pageCount > 1 && (
-              <nav aria-label="Pagination" className={styles.pagination}>
+            <nav ref={pagination} aria-label={pageCount > 1 ? "Pagination" : undefined} role={pageCount > 1 ? undefined : "presentation"} className={styles.pagination}>
+              {pageCount > 1 && (
                 <Button variant="outline" className={styles.control} disabled={loading || currentPage === 1} focusableWhenDisabled={loading}
                   onClick={() => update({ page: currentPage - 1 })}>Previous</Button>
-                <span className={styles.pageNumber} aria-current="page">Page {currentPage} of {pageCount}</span>
+              )}
+              <div className={styles.pageInfo}>
+                {pageCount > 1 && <span aria-current="page">Page {currentPage} of {pageCount}</span>}
+                <p role="status" aria-live="polite" aria-atomic="true">
+                  {total ? `${start + 1}–${start + items.length} of ${total}` : loading ? `Loading ${title.toLowerCase()}…` :
+                    query ? `No ${title.toLowerCase()} match “${appliedSearch}”.` : `No ${title.toLowerCase()} available.`}
+                </p>
+              </div>
+              {pageCount > 1 && (
                 <Button variant="outline" className={styles.control} disabled={loading || currentPage === pageCount} focusableWhenDisabled={loading}
                   onClick={() => update({ page: currentPage + 1 })}>Next</Button>
-              </nav>
-            )}
+              )}
+            </nav>
           </footer>
         )}
       </main>

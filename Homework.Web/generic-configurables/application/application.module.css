@@ -6,16 +6,16 @@
 }
 
 .header {
-  @apply grid grid-cols-[1fr_minmax(0,var(--spacing-clamp-10))_1fr] gap-x-content-gap border-t-(length:--spacing-clamp-1) border-b-(length:--spacing-clamp-0);
-  @apply border-t-primary bg-card/95;
+  @apply grid grid-cols-[1fr_minmax(0,var(--spacing-clamp-10))_1fr] grid-rows-[0_auto_0] gap-x-content-gap gap-y-header-gap;
+  @apply border-t-(length:--spacing-clamp-1) border-b-(length:--spacing-clamp-0) border-t-primary bg-card/95;
 }
 
 .headerContent {
-  @apply relative col-start-2 flex min-h-viewport-band flex-wrap items-center gap-x-layout-gap gap-y-clamp-2;
+  @apply col-start-2 row-start-2 flex flex-wrap items-center gap-x-layout-gap gap-y-clamp-2;
 }
 
 .name {
-  @apply flex min-h-clamp-7 min-w-0 max-w-full shrink-0 items-center gap-clamp-2 text-clamp-5 font-bold tracking-tight text-primary wrap-anywhere;
+  @apply flex min-h-clamp-6 min-w-0 max-w-full shrink-0 items-center gap-clamp-2 text-clamp-5 font-bold tracking-tight text-primary wrap-anywhere;
   @apply focus-visible:outline-(length:--spacing-clamp-1);
 }
 
@@ -23,20 +23,12 @@
   @apply inline-grid size-clamp-6 shrink-0 place-items-center rounded-clamp-2 bg-primary text-clamp-4 text-primary-foreground shadow-clamp-1 shadow-primary/20;
 }
 
-.menuButton {
-  @apply rounded-clamp-2 border-input text-primary;
-}
-
 .navigation {
-  @apply flex w-max max-w-full shrink-0 flex-wrap gap-content-gap;
-}
-
-.navigation[aria-hidden="true"] {
-  @apply invisible pointer-events-none absolute;
+  @apply flex w-max max-w-full shrink-0 flex-wrap gap-x-content-gap gap-y-clamp-2;
 }
 
 .navigationLink {
-  @apply flex min-h-clamp-7 items-center gap-clamp-2 text-clamp-3 font-semibold text-primary decoration-chart-2 hover:underline aria-[current=page]:underline;
+  @apply flex min-h-clamp-6 items-center gap-clamp-2 text-clamp-3 font-semibold text-primary decoration-chart-2 hover:underline aria-[current=page]:underline;
   @apply decoration-(length:--spacing-clamp-1) underline-offset-(--spacing-clamp-2) focus-visible:outline-(length:--spacing-clamp-1);
 }
 
@@ -80,7 +72,7 @@
 }
 
 .scrollbar {
-  @apply row-[2/-1] z-30 flex w-clamp-3 justify-center bg-muted;
+  @apply row-[4/-1] z-30 flex w-clamp-3 justify-center bg-muted;
 }
 
 .page:has(> .main > footer) > .scrollbar {

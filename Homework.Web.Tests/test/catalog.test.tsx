@@ -194,16 +194,18 @@ describe("Catalogue interaction", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("keeps the list and keyboard focus while fetching just the requested page", async () => {
+  it("keeps the list, pagination text, and keyboard focus while fetching just the requested page", async () => {
     const pending = Promise.withResolvers<Response>();
     vi.mocked(fetch).mockReturnValueOnce(pending.promise);
     render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
     const next = screen.getByRole("button", { name: "Next" });
     const results = screen.getByRole("region", { name: "Products" });
+    const count = screen.getByRole("status");
     next.focus();
     fireEvent.click(next);
 
-    expect(screen.getByRole("status").textContent).toBe("Loading products…");
+    expect(count.textContent).toBe("1–2 of 5");
+    expect(screen.getByText("Page 1 of 3")).toBeTruthy();
     expect(screen.getByRole("main").getAttribute("aria-busy")).toBe("true");
     expect(next.getAttribute("aria-disabled")).toBe("true");
     expect(screen.getByRole("region", { name: "Products" })).toBe(results);
@@ -216,6 +218,8 @@ describe("Catalogue interaction", () => {
     await loaded();
 
     expect(screen.getByText("Page 2 of 3")).toBeTruthy();
+    expect(screen.getByRole("status")).toBe(count);
+    expect(count.textContent).toBe("3–4 of 5");
     expect(screen.getByRole("region", { name: "Products" })).toBe(results);
     expect(document.activeElement).toBe(next);
   });
@@ -311,6 +315,7 @@ describe("Catalogue interaction", () => {
 
   it("requests title searches across every page, ignoring case and surrounding whitespace", async () => {
     render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    const count = screen.getByRole("status");
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await loaded();
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "  IPHON  " } });
@@ -321,6 +326,7 @@ describe("Catalogue interaction", () => {
     expect(screen.getByRole("heading", { name: "iPhone X" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Laptop" })).toBeNull();
     expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
+    expect(screen.getByRole("status")).toBe(count);
     expect(screen.getByRole("status").textContent).toBe("1–2 of 2");
     expect(screen.getByText("Trending item:").parentElement?.textContent).toContain("Laptop");
     expect(fetch).toHaveBeenCalledWith(new URL(`${endpoint}?page=1&search=iphon`, window.location.origin), expect.objectContaining({ cache: "no-store" }));
@@ -397,9 +403,13 @@ describe("Catalogue interaction", () => {
     const footer = screen.getByRole("contentinfo");
     const count = screen.getByRole("status");
     const pagination = screen.getByRole("navigation", { name: "Pagination" });
-    expect(count.parentElement).toBe(footer);
+    const pageNumber = within(pagination).getByText("Page 1 of 3");
+    expect(count.previousElementSibling).toBe(pageNumber);
+    expect(count.parentElement?.parentElement).toBe(pagination);
+    expect(count.parentElement?.previousElementSibling).toBe(within(pagination).getByRole("button", { name: "Previous" }));
+    expect(count.parentElement?.nextElementSibling).toBe(within(pagination).getByRole("button", { name: "Next" }));
+    expect(count.textContent).toBe("1–2 of 5");
     expect(pagination.parentElement).toBe(footer);
-    expect(count.nextElementSibling).toBe(pagination);
     expect(footer.parentElement).toBe(screen.getByRole("main"));
 
     for (const element of [
@@ -411,6 +421,58 @@ describe("Catalogue interaction", () => {
     ]) {
       expect(results.contains(element)).toBe(false);
     }
+  });
+
+  it("moves the pagination labels below the buttons only when their unwrapped width does not fit", () => {
+    const resized = new Map<Element, () => void>();
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(private readonly resize: () => void) {}
+      observe = (element: Element) => {
+        element.getAnimations = vi.fn(() => []);
+        resized.set(element, this.resize);
+      };
+      unobserve = vi.fn();
+      disconnect = vi.fn();
+    });
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    const pagination = screen.getByRole("navigation", { name: "Pagination" });
+    const previous = within(pagination).getByRole("button", { name: "Previous" });
+    const next = within(pagination).getByRole("button", { name: "Next" });
+    const count = within(pagination).getByRole("status");
+    const pageNumber = within(pagination).getByText("Page 1 of 3");
+    let available = 268;
+    let labelWidth = 110;
+    vi.spyOn(pagination, "getBoundingClientRect").mockImplementation(() => new DOMRect(0, 0, available, 44));
+    vi.spyOn(previous, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 70, 44));
+    vi.spyOn(next, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 60, 44));
+    for (const label of [pageNumber, count]) vi.spyOn(label, "getBoundingClientRect").mockImplementation(() => new DOMRect(0, 0, labelWidth, 21));
+    const getStyle = window.getComputedStyle.bind(window);
+    vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+      const style = getStyle(element, pseudo);
+      if (element === pagination) Object.defineProperty(style, "columnGap", { value: "14px" });
+      return style;
+    });
+    next.focus();
+    resized.get(pagination)?.();
+    expect(pagination.hasAttribute("data-stacked")).toBe(false);
+
+    available = 267;
+    resized.get(pagination)?.();
+    expect(pagination.hasAttribute("data-stacked")).toBe(true);
+    expect(within(pagination).getByRole("status")).toBe(count);
+    expect(document.activeElement).toBe(next);
+
+    available = 300;
+    resized.get(pagination)?.();
+    expect(pagination.hasAttribute("data-stacked")).toBe(false);
+
+    labelWidth = 150;
+    resized.get(count)?.();
+    expect(pagination.hasAttribute("data-stacked")).toBe(true);
+
+    labelWidth = 110;
+    resized.get(pageNumber)?.();
+    expect(pagination.hasAttribute("data-stacked")).toBe(false);
   });
 
   it("returns results to the top when paging, searching, or clearing without moving keyboard focus", async () => {
@@ -445,7 +507,7 @@ describe("Catalogue interaction", () => {
     expect(document.activeElement).toBe(search);
   });
 
-  it("preserves the results scroll position when unrelated state or equivalent search text changes", async () => {
+  it("preserves the results scroll position when equivalent search text changes", async () => {
     render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
     const search = screen.getByRole("searchbox");
     fireEvent.change(search, { target: { value: "iPhone" } });
@@ -453,8 +515,6 @@ describe("Catalogue interaction", () => {
     const results = screen.getByRole("region", { name: "Products" });
     results.scrollTop = 120;
 
-    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
-    expect(results.scrollTop).toBe(120);
     fireEvent.change(search, { target: { value: "  IPHONE  " } });
     await loaded();
     expect(results.scrollTop).toBe(120);

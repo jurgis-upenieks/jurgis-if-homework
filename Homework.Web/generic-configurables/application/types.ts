@@ -19,8 +19,6 @@ export type ApplicationErrorProps = { retry: () => void };
 export type ApplicationState = Record<string, ApplicationStateValue>;
 
 
-export type ApplicationNavigationState = { menuOpen: boolean };
-
 export type ApplicationTextTooltipState = { anchor: HTMLElement; text: string };
 
 type ApplicationStateValue = string | number | boolean | null | ApplicationStateValue[] | { [key: string]: ApplicationStateValue };

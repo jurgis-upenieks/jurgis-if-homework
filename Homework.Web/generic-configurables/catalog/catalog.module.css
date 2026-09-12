@@ -77,15 +77,31 @@
 }
 
 .paginationRow {
-  @apply grid grid-cols-[minmax(min-content,1fr)_minmax(0,max-content)_minmax(0,1fr)] items-center gap-clamp-2 self-start;
-}
-
-.resultCount {
-  @apply min-w-0 text-clamp-3 font-medium text-muted-foreground wrap-break-word only:col-span-full only:wrap-anywhere;
+  @apply grid items-center gap-clamp-2 self-start;
 }
 
 .pagination {
-  @apply col-start-2 flex min-w-0 flex-wrap items-center justify-center gap-clamp-2;
+  @apply grid min-w-0 grid-cols-[max-content_minmax(min-content,var(--spacing-pagination-info))_max-content] items-center justify-center gap-x-clamp-3 gap-y-clamp-2 text-center;
+}
+
+.pagination[data-stacked] {
+  @apply grid-cols-[max-content_minmax(0,var(--spacing-pagination-info))_max-content];
+}
+
+.pagination[data-stacked] .pageInfo {
+  @apply col-span-full row-start-2;
+}
+
+.pagination[role="presentation"] {
+  @apply grid-cols-1 text-start;
+}
+
+.pageInfo {
+  @apply grid min-w-0 gap-clamp-1 text-clamp-3 font-medium text-muted-foreground tabular-nums wrap-anywhere;
+}
+
+.pagination:not([role="presentation"]) .pageInfo > * {
+  @apply w-max justify-self-center whitespace-nowrap;
 }
 
 .control {
@@ -93,15 +109,11 @@
 }
 
 .pagination .control {
-  @apply min-w-clamp-8 border-input bg-card text-primary hover:bg-secondary;
+  @apply min-w-clamp-8 justify-self-center border-input bg-card text-primary hover:bg-secondary;
 }
 
 .pagination .control:last-child {
-  @apply border-primary bg-primary text-primary-foreground hover:bg-primary/90;
-}
-
-.pageNumber {
-  @apply text-center text-clamp-3 font-medium text-muted-foreground tabular-nums;
+  @apply col-start-3 row-start-1 border-primary bg-primary text-primary-foreground hover:bg-primary/90;
 }
 
 .message {

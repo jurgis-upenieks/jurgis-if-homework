@@ -117,11 +117,10 @@ it.each([{ saved: "Existing draft", expected: "Existing draft" }, { saved: 123, 
   },
 );
 
-it("restores catalogue pagination, exact results, equivalent search text, menu, scroll, and focus together", async () => {
+it("restores catalogue pagination, exact results, equivalent search text, scroll, and focus together", async () => {
   const first = mount(<Catalog name="Test" title="Products" endpoint="/api/products" data={initialData} />);
   fireEvent.click(screen.getByRole("button", { name: "Next" }));
   await tick(100);
-  fireEvent.click(screen.getByRole("button", { name: "Menu" }));
   const results = screen.getByRole("region", { name: "Products" });
   results.scrollTop = 140;
   const input = screen.getByRole<HTMLInputElement>("searchbox");
@@ -140,7 +139,6 @@ it("restores catalogue pagination, exact results, equivalent search text, menu, 
   expect(screen.getByRole("heading", { name: "Second item" })).toBeTruthy();
   expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("   ");
   expect(screen.getByRole("region", { name: "Products" }).scrollTop).toBe(140);
-  expect(screen.getByRole("button", { name: "Menu" }).getAttribute("aria-expanded")).toBe("true");
   expect(document.activeElement).toBe(screen.getByRole("searchbox"));
   expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/api/products"))).toHaveLength(1);
 });
