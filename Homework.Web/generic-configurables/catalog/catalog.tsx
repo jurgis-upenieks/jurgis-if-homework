@@ -176,7 +176,7 @@ export function Catalog({
                 )}
               </nav>
             )}
-            {footerNote && <small className={styles.footerNote}>{footerNote}</small>}
+            {footerNote && <small className={styles.footerNote}><strong>{footerNote.label}:</strong>{" "}{footerNote.text}</small>}
           </footer>
         )}
       </main>

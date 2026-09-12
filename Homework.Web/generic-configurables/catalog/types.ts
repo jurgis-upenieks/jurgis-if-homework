@@ -4,7 +4,7 @@ export type CatalogPageProps = {
   name: string;
   navigation?: ApplicationHeaderProps["navigation"];
   title: string;
-  footerNote?: string;
+  footerNote?: { label: string; text: string };
   source: CollectionSource;
   endpoint: string;
   trendingLabel?: string;

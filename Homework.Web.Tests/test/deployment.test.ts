@@ -32,8 +32,8 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     expect(heading?.closest('[hidden], [aria-hidden="true"]')).toBeNull();
     expect(page.querySelectorAll(`ul[aria-label="${catalog.title}"] > li`).length).toBeGreaterThan(0);
     expect(page.querySelectorAll(`ul[aria-label="${catalog.title}"] > li`).length).toBeLessThanOrEqual(12);
-    expect(catalog.footerNote.trim().length).toBeGreaterThan(0);
-    expect(note?.textContent).toBe(catalog.footerNote);
+    expect(note?.querySelector("strong")?.textContent).toBe(`${catalog.footerNote.label}:`);
+    expect(note?.textContent).toBe(`${catalog.footerNote.label}: ${catalog.footerNote.text}`);
     expect(note?.textContent).toMatch(/sample data/i);
     expect(note?.textContent).toMatch(/no orders or payments/i);
     expect(note?.closest('[hidden], [aria-hidden="true"]')).toBeNull();

@@ -4,7 +4,10 @@ import { site } from "./site";
 export const catalog = {
   ...site,
   title: "Demo products",
-  footerNote: "Job application homework demo using DummyJSON sample data. Products, prices and discounts are examples only. This is not an online store; no orders or payments are accepted.",
+  footerNote: {
+    label: "Disclaimer",
+    text: "This website is a job application homework demo. Product information, prices and discounts are sample data from DummyJSON. Nothing is for sale; no orders or payments are accepted.",
+  },
   trendingLabel: "Highest-rated sample",
   missingDetail: "Brand unavailable",
   endpoint: "/api/products",

@@ -79,7 +79,11 @@
 }
 
 .footerNote {
-  @apply border-t-(length:--spacing-clamp-0) border-border pt-clamp-2 text-center text-clamp-3 leading-snug text-muted-foreground wrap-anywhere;
+  @apply border-t-(length:--spacing-clamp-0) border-border pt-clamp-2 text-center text-clamp-3 leading-snug text-foreground wrap-anywhere;
+}
+
+.footerNote strong {
+  @apply font-semibold;
 }
 
 .pagination {
