@@ -8,7 +8,7 @@ export const catalog = {
     label: "Disclaimer",
     text: "This website is a job application homework with demo/dummy data only. This is not a real online store. Product information, prices and discounts are sample data from DummyJSON. Nothing is for sale; no orders or payments are accepted.",
   },
-  trendingLabel: "Highest-rated sample",
+  trendingLabel: "Trending product",
   missingDetail: "Brand unavailable",
   endpoint: "/api/products",
   source: {
