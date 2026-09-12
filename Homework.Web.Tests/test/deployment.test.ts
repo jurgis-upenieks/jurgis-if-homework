@@ -34,7 +34,7 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     expect(page.querySelectorAll(`ul[aria-label="${catalog.title}"] > li`).length).toBeLessThanOrEqual(12);
     expect(note?.querySelector("strong")?.textContent).toBe(`${catalog.footerNote.label}:`);
     expect(note?.textContent).toBe(`${catalog.footerNote.label}: ${catalog.footerNote.text}`);
-    expect(note?.textContent).toMatch(/sample data/i);
+    expect(note?.textContent).toMatch(/dummy data only/i);
     expect(note?.textContent).toMatch(/no orders or payments/i);
     expect(note?.closest('[hidden], [aria-hidden="true"]')).toBeNull();
     expect(results?.contains(note)).toBe(false);
