@@ -53,6 +53,9 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     expect([...details.querySelectorAll("main > div > ol > li > h2")].map((heading) => heading.textContent?.trim())).toEqual(titles);
     expect(details.querySelector('[data-slot="card"]')).toBeNull();
     expect([...details.querySelectorAll("main code")].map((code) => code.textContent)).toEqual([...readme.matchAll(/`([^`]+)`/g)].map(([, command]) => command));
+    const productionUrl = readme.match(/https:\/\/[a-z0-9.-]+\.azurewebsites\.net\b/)?.[0];
+    expect(productionUrl).toBeDefined();
+    expect([...details.querySelectorAll("main a")].map((link) => [link.getAttribute("href"), link.textContent])).toContainEqual([productionUrl, productionUrl]);
 
     for (const document of [page, details]) {
       const links = [...document.querySelectorAll('nav[aria-label="Main navigation"] a')];

@@ -43,7 +43,7 @@
 - The products list is paginated, so for each page only the needed products list data needs is retrieved from the server-side. When a user first opens the site and gets in to the first page of the products list, a server-side rendering is already putting all data visually in that page before sending to client-side. And also, for hydration to work, in the rendered page matadata it includes a json with the data for models. Then after, the client-side gets that page with all the data already populated in the dom, it starts hydration silently in the background to transition from a static page to a Single Page Application full app mode. But when later, when a user decides to switch to another products list page, then the client-side requests from the server-side the data for the second page (not asking for a server-side-rendering of the second page, but requests only the data for the second page of products). Also, on the server-side, the server doesnt cache the products list, because on the external service, from which it gets the data, that data might change from time to time.
 
 # 8. Deployed to production with Azure CI/CD
- - This full-stack app has been deployed to Azure cloud and the deployed version is publicly available at: https://jurgis-if-homework-f7fmdjdcfndsbqdu.germanywestcentral-01.azurewebsites.net
+ - This full-stack app has been deployed to Azure cloud and the deployed version is publicly available at: https://jurgis-upenieks-if-homework-erfye2eab2fxc9bm.germanywestcentral-01.azurewebsites.net
  - This is a full-stack Next.js app, and in Azure it has also the server-side running (for server-side-rendering and for responding to REST API requests from the client-side).
  - The deployment method in Azure is App Service Web App with:
    - Publish as: Code
@@ -56,6 +56,7 @@
  - I have configured the Azure pipelines, so that on every git-push to 'main' branch the following jobs are automatically triggered by Azure side: build, run unit-tests and deploy to production.
  - I have configured the pipelines so that the deployment to production is gated by unit-tests run.
  - The Azure CI/CD pipelines configuration is in: .github/workflows/azure-app-service.yml
+ - The GitHub Actions repository variable `AZURE_WEBAPP_NAME` targets `jurgis-upenieks-if-homework`. Production checks use the actual hostname returned by Azure after deployment.
 
 # 9. Responsive and mobile-friendly front-end
  - My special signature when developing front-ends, is making fully dynamic responsive spaces (inner, outer, in-between) and sizes in layout with a custom standardized centralized css 'clamp' function system. This way the site contents are looking good and usable on any screen size and aspect ratio.
