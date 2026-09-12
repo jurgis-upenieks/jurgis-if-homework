@@ -1,11 +1,11 @@
-import type { ReactElement } from "react";
+import { cloneElement, type ReactElement } from "react";
 import { act, cleanup, fireEvent, render as renderComponent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Catalog } from "@/generic-configurables/catalog/catalog";
 import { getQueryClient, QueryProvider } from "@/generic-configurables/query";
 import { createCollectionRoute } from "@/generic-configurables/catalog/collection.server";
 import { getSearchTokens } from "@/generic-configurables/catalog/search";
-import type { CatalogData } from "@/generic-configurables/catalog/types";
+import type { CatalogData, CatalogProps } from "@/generic-configurables/catalog/types";
 
 const endpoint = "/api/products";
 const source = { url: "https://example.test/entries", collection: "entries" };
@@ -48,8 +48,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function render(element: ReactElement) {
-  return renderComponent(element, { wrapper: QueryProvider });
+function render(element: ReactElement<CatalogProps>, initialData?: CatalogData) {
+  const updatedAt = initialData ? Date.now() : 0;
+  if (initialData) getQueryClient().setQueryData(["catalog", endpoint, 1, ""], initialData, { updatedAt });
+  return renderComponent(cloneElement(element, { updatedAt }), { wrapper: QueryProvider });
 }
 
 function firstPage(pageSize: number) {
@@ -67,7 +69,7 @@ async function loaded() {
 
 describe("Catalogue interaction", () => {
   it("submits pending search immediately, resets pagination, and cancels the obsolete debounce", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await loaded();
     vi.mocked(fetch).mockClear();
@@ -89,7 +91,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("waits for 300 ms after the last keystroke before resetting the page and requesting the search", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await loaded();
     vi.mocked(fetch).mockClear();
@@ -115,7 +117,7 @@ describe("Catalogue interaction", () => {
     const first = Promise.withResolvers<Response>();
     const second = Promise.withResolvers<Response>();
     vi.mocked(fetch).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, data);
     vi.useFakeTimers();
     const input = screen.getByRole<HTMLInputElement>("searchbox");
     input.focus();
@@ -156,7 +158,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("cancels a pending debounce when cleared or unmounted", async () => {
-    const { unmount } = render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
+    const { unmount } = render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, data);
     vi.useFakeTimers();
     const input = screen.getByRole<HTMLInputElement>("searchbox");
     fireEvent.change(input, { target: { value: "iPhone" } });
@@ -173,7 +175,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("groups the page title, trending product, and accessible search in the main content header", () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" trendingLabel="Trending product" data={data} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" trendingLabel="Trending product" />, data);
     const heading = screen.getByRole("heading", { name: "Products", level: 1 });
     const header = heading.closest("header");
 
@@ -185,7 +187,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("uses the server-rendered first page without fetching or prefetching other pages", () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
 
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.queryByRole("heading", { name: "iPhone X" })).toBeNull();
@@ -197,7 +199,7 @@ describe("Catalogue interaction", () => {
   it("keeps the list, pagination text, and keyboard focus while fetching just the requested page", async () => {
     const pending = Promise.withResolvers<Response>();
     vi.mocked(fetch).mockReturnValueOnce(pending.promise);
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     const next = screen.getByRole("button", { name: "Next" });
     const results = screen.getByRole("region", { name: "Products" });
     const count = screen.getByRole("status");
@@ -225,7 +227,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("fetches fresh data when returning to a previously visited page", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await loaded();
     vi.mocked(fetch).mockResolvedValueOnce(Response.json({ ...data, items: [{ ...data.items[0], title: "Updated title" }], total: 1 }));
@@ -240,7 +242,7 @@ describe("Catalogue interaction", () => {
 
   it("retries failed page requests without a document reload", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 502 }));
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await loaded();
     expect(screen.getByRole("alert").textContent).toContain("We couldn’t load products.");
@@ -254,10 +256,26 @@ describe("Catalogue interaction", () => {
     expect(screen.getByRole("heading", { name: "iPhone X" })).toBeTruthy();
   });
 
+  it("keeps search available after a later page fails so another query can recover", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 502 }));
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
+    const search = screen.getByRole<HTMLInputElement>("searchbox");
+    expect(search.disabled).toBe(false);
+
+    fireEvent.change(search, { target: { value: "Tea" } });
+    fireEvent.submit(screen.getByRole("search"));
+    await loaded();
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Green Tea" })).toBeTruthy();
+  });
+
   it("cancels obsolete requests and ignores late responses when the search changes", async () => {
     const pending = Promise.withResolvers<Response>();
     vi.mocked(fetch).mockReturnValueOnce(pending.promise);
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     const signal = vi.mocked(fetch).mock.calls[0][1]?.signal;
 
@@ -271,7 +289,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("shows cards with titles, brands, prices, and a global trending title", () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" trendingLabel="Trending product" data={data} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" trendingLabel="Trending product" />, data);
 
     const cards = within(screen.getByRole("region", { name: "Products" })).getAllByRole("listitem");
     expect(cards).toHaveLength(5);
@@ -290,7 +308,7 @@ describe("Catalogue interaction", () => {
   it("keeps numeric and string identifiers distinct when updating cards", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const items = [{ ...data.items[0], id: 1 }, { ...data.items[1], id: "1" }];
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={{ ...data, items, total: 2 }} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, { ...data, items, total: 2 });
     act(() => getQueryClient().setQueryData(["catalog", endpoint, 1, ""], { ...data, items: items.toReversed(), total: 2 }));
 
     await waitFor(() => expect(screen.getAllByRole("listitem").map((item) => within(item).getByRole("heading").textContent)).toEqual(items.toReversed().map((item) => item.title)));
@@ -304,7 +322,7 @@ describe("Catalogue interaction", () => {
     { percentage: 100, displayedPercentage: 100, amount: 0, original: 200, price: "0 €", originalPrice: "200 €" },
   ])("shows a whole discount, the supplied reduced price, and semantic original price: $percentage%", ({ percentage, displayedPercentage, amount, original, price, originalPrice }) => {
     const items = [{ ...data.items[0], amount: original, discount: { percentage, amount } }];
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={{ ...data, items, total: 1 }} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, { ...data, items, total: 1 });
 
     const card = screen.getByRole("article");
 
@@ -314,7 +332,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("requests title searches across every page, ignoring case and surrounding whitespace", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     const count = screen.getByRole("status");
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await loaded();
@@ -333,7 +351,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("searches with unordered title tokens and preserves the user's original text", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(1)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(1));
     const input = screen.getByRole<HTMLInputElement>("searchbox");
     input.focus();
     fireEvent.change(input, { target: { value: "  X   ÍPHÓN  " } });
@@ -348,7 +366,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("preserves pagination, scroll, and cached results when tokens only change order, case, accents, spacing, or repetition", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(1)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(1));
     const input = screen.getByRole<HTMLInputElement>("searchbox");
     fireEvent.change(input, { target: { value: "ph i" } });
     await loaded();
@@ -372,7 +390,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("paginates without gaps or duplicates and disables the boundary controls", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Previous" }).disabled).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
@@ -393,7 +411,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("makes the results keyboard-focusable and keeps the surrounding controls outside the scroll area", () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     const results = screen.getByRole("region", { name: "Products" });
 
     expect(results.tabIndex).toBe(0);
@@ -434,7 +452,7 @@ describe("Catalogue interaction", () => {
       unobserve = vi.fn();
       disconnect = vi.fn();
     });
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     const pagination = screen.getByRole("navigation", { name: "Pagination" });
     const previous = within(pagination).getByRole("button", { name: "Previous" });
     const next = within(pagination).getByRole("button", { name: "Next" });
@@ -476,7 +494,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("returns results to the top when paging, searching, or clearing without moving keyboard focus", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     const results = screen.getByRole("region", { name: "Products" });
     const next = screen.getByRole("button", { name: "Next" });
     const search = screen.getByRole("searchbox");
@@ -508,7 +526,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("preserves the results scroll position when equivalent search text changes", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, data);
     const search = screen.getByRole("searchbox");
     fireEvent.change(search, { target: { value: "iPhone" } });
     await loaded();
@@ -521,7 +539,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("keeps pagination within the search results and resets it when clearing", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(1)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(1));
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "iPhone" } });
     await loaded();
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
@@ -537,7 +555,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("announces no matches, treats whitespace as no filter, and prevents form navigation", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={data} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, data);
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "does not exist" } });
     await loaded();
     expect(screen.getByRole("status").textContent).toBe("No products match “does not exist”.");
@@ -552,13 +570,13 @@ describe("Catalogue interaction", () => {
   });
 
   it("handles absent brands and zero prices", () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" missingDetail="Brand unavailable" data={data} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" missingDetail="Brand unavailable" />, data);
     expect(screen.getByText("Brand unavailable")).toBeTruthy();
     expect(screen.getByText(/^0\s*€/)).toBeTruthy();
   });
 
   it("handles an empty catalogue", () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={{ ...data, items: [], total: 0, trendingTitle: null }} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, { ...data, items: [], total: 0, trendingTitle: null });
     expect(screen.getByRole("status").textContent).toBe("No products available.");
     expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
   });
@@ -573,8 +591,31 @@ describe("Catalogue interaction", () => {
     await loaded();
   });
 
+  it("ends a stalled request at its deadline and allows recovery", async () => {
+    const deadline = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(deadline.signal);
+    vi.mocked(fetch).mockImplementationOnce((_input, options) => new Promise((_resolve, reject) => {
+      options?.signal?.addEventListener("abort", () => reject(options.signal?.reason), { once: true });
+    }));
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />);
+    expect(screen.getByRole("dialog", { name: "Loading" })).toBeTruthy();
+    expect(timeout).toHaveBeenCalledWith(15_000);
+
+    act(() => deadline.abort(new DOMException("Request timed out", "TimeoutError")));
+    await loaded();
+
+    expect(screen.queryByRole("dialog", { name: "Loading" })).toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain("We couldn’t load products.");
+    timeout.mockRestore();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await loaded();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
+  });
+
   it("recovers from initial server errors by fetching JSON without reloading the page", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" failed />);
+    getQueryClient().getQueryCache().build(getQueryClient(), { queryKey: ["catalog", endpoint, 1, ""] }).setState({ status: "error", error: new Error("Unavailable") });
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />);
     expect(screen.getByRole("alert").textContent).toContain("We couldn’t load products.");
     const viewport = screen.getByRole("region", { name: "Products" });
     expect(viewport.tabIndex).toBe(0);
@@ -591,7 +632,7 @@ describe("Catalogue interaction", () => {
   });
 
   it("clamps the page when the catalogue shrinks on the server", async () => {
-    render(<Catalog endpoint={endpoint} name="Homework" title="Products" data={firstPage(2)} />);
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await loaded();
     vi.mocked(fetch).mockResolvedValueOnce(Response.json({ ...data, items: data.items.slice(2, 3), total: 3, page: 2, pageSize: 2 }));

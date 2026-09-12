@@ -2,7 +2,7 @@
 
 .overlay {
   @apply fixed inset-0 z-40 grid place-items-center bg-background/50 opacity-100 outline-none;
-  @apply transition-opacity duration-(--transition-duration-slow) ease-out;
+  @apply motion-safe:transition-opacity duration-(--transition-duration-slow) ease-out;
 }
 
 :global(body):has(.overlay:not([hidden])) :global([data-loading-interactive]) {
@@ -24,5 +24,5 @@
 }
 
 .spinner {
-  @apply block size-clamp-7 rounded-full border-(length:--spacing-clamp-1) border-primary border-t-transparent;
+  @apply block size-clamp-7 rounded-full border-(length:--spacing-clamp-1) border-primary border-t-transparent motion-safe:animate-spin;
 }

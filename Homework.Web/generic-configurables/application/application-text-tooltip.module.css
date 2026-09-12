@@ -13,12 +13,12 @@
 }
 
 .popup {
-  @apply relative grid max-w-clamp-9 grid-cols-[0_minmax(0,1fr)_0] grid-rows-[0_auto_0] gap-x-clamp-2 gap-y-clamp-1;
+  @apply relative max-w-clamp-9 px-clamp-2 py-clamp-1;
   @apply rounded-clamp-2 border-(length:--spacing-clamp-0) border-border bg-foreground text-clamp-3 text-background shadow-clamp-2 shadow-primary/20;
 }
 
 .popup > span {
-  @apply col-start-2 row-start-2 whitespace-pre-wrap wrap-anywhere;
+  @apply whitespace-pre-wrap wrap-anywhere;
 }
 
 .arrow {

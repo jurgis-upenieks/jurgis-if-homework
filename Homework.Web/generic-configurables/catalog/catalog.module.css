@@ -57,21 +57,19 @@
 }
 
 .prices {
-  @apply flex min-w-0 items-baseline justify-center gap-clamp-2;
+  @apply flex min-w-0 flex-wrap items-baseline justify-center gap-clamp-2;
 }
 
 .pricing:has(.discount) .prices {
-  @apply before:content-[''] after:content-[''];
+  @apply px-clamp-2;
 }
 
 .price {
-  @apply min-w-0 text-clamp-4 font-bold text-primary tabular-nums whitespace-nowrap [text-fit:shrink];
-  @apply [--text-fit-size:var(--spacing-clamp-4)];
+  @apply min-w-0 max-w-full text-clamp-4 font-bold text-primary tabular-nums wrap-anywhere;
 }
 
 .originalPrice {
-  @apply relative min-w-0 text-clamp-3 text-muted-foreground no-underline whitespace-nowrap [text-fit:shrink];
-  @apply [--text-fit-size:var(--spacing-clamp-3)];
+  @apply relative min-w-0 max-w-full text-clamp-3 text-muted-foreground no-underline wrap-anywhere;
   @apply after:pointer-events-none after:absolute after:inset-0 after:bg-linear-to-br after:from-transparent after:via-primary after:to-transparent after:content-[''];
   @apply after:from-[calc(50%-var(--spacing-clamp-1))] after:via-50% after:to-[calc(50%+var(--spacing-clamp-1))];
 }

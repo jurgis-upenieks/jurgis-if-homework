@@ -117,8 +117,96 @@ it.each([{ saved: "Existing draft", expected: "Existing draft" }, { saved: 123, 
   },
 );
 
-it("restores catalogue pagination, exact results, equivalent search text, scroll, and focus together", async () => {
-  const first = mount(<Catalog name="Test" title="Products" endpoint="/api/products" data={initialData} />);
+it.each([
+  { saved: { draft: null, rows: {} }, draft: { title: "Default", archived: false }, rows: [{ title: "New", pinned: false }] },
+  { saved: { draft: [], rows: null }, draft: { title: "Default", archived: false }, rows: [{ title: "New", pinned: false }] },
+  { saved: { draft: { title: 123 }, rows: [null] }, draft: { title: "Default", archived: false }, rows: [{ title: "New", pinned: false }] },
+  { saved: { draft: { title: "Saved" }, rows: [{ title: "Row" }, { title: "Another" }] },
+    draft: { title: "Saved", archived: false }, rows: [{ title: "Row", pinned: false }, { title: "Another", pinned: false }] },
+])("restores compatible nested fields and arrays while retaining new defaults: $saved", async ({ saved, draft, rows }) => {
+  sessionStorage.setItem("application-update-v1", JSON.stringify({
+    schema: 1, url: location.href, savedAt: Date.now(), states: { "nested:v1": { ...saved, removed: true } },
+    queries: { queries: [], mutations: [] }, view: { scroll: {}, focus: null, selection: null },
+  }));
+  function NestedDraft() {
+    const [state] = useApplicationState("nested:v1", { draft: { title: "Default", archived: false }, rows: [{ title: "New", pinned: false }] });
+    return <output>{JSON.stringify(state)}</output>;
+  }
+  mount(<NestedDraft />);
+  await tick(50);
+
+  expect(JSON.parse(screen.getByRole("status").textContent ?? "")).toEqual({ draft, rows });
+});
+
+it("keeps a restored draft through another reload before its component mounts", async () => {
+  sessionStorage.setItem("application-update-v1", JSON.stringify({
+    schema: 1, url: location.href, savedAt: Date.now(), states: { "draft:v1": { text: "Delayed draft" } },
+    queries: { queries: [], mutations: [] }, view: { scroll: {}, focus: null, selection: null },
+  }));
+  const first = mount(<></>);
+  await tick(50);
+  fireEvent.pageHide(window);
+  first.unmount();
+  mount();
+  await tick(50);
+
+  expect(screen.getByRole<HTMLInputElement>("textbox").value).toBe("Delayed draft");
+});
+
+it.each([
+  { saved: { selected: "Chosen", drafts: { entry: "Draft" }, rows: ["Text", 1] } },
+  { saved: { selected: null, drafts: { entry: "Another draft" }, rows: [2, "Text"] } },
+  { saved: { selected: { invalid: true }, drafts: null, rows: false } },
+])("uses an explicit restorer for ambiguous state shapes across reloads: $saved", async ({ saved }) => {
+  const initial = { selected: null as string | null, drafts: {} as Record<string, string>, rows: [1, "Text"] as (string | number)[] };
+  const restored = saved.drafts === null ? undefined : saved;
+  const restore = vi.fn((_saved: unknown, defaults: typeof initial) => restored ? { ...defaults, ...restored } : undefined);
+  sessionStorage.setItem("application-update-v1", JSON.stringify({
+    schema: 1, url: location.href, savedAt: Date.now(), states: { "custom:v1": saved },
+    queries: { queries: [], mutations: [] }, view: { scroll: {}, focus: null, selection: null },
+  }));
+  function CustomDraft() {
+    const [state] = useApplicationState("custom:v1", initial, restore);
+    return <output>{JSON.stringify(state)}</output>;
+  }
+  const first = mount(<CustomDraft />);
+  await tick(50);
+  expect(restore).toHaveBeenCalledWith(saved, initial);
+  expect(JSON.parse(screen.getByRole("status").textContent ?? "")).toEqual(restored ?? initial);
+  fireEvent.pageHide(window);
+  expect(readUpdateSnapshot()?.states["custom:v1"]).toEqual(restored ?? initial);
+  first.unmount();
+  mount(<CustomDraft />);
+  await tick(50);
+
+  expect(JSON.parse(screen.getByRole("status").textContent ?? "")).toEqual(restored ?? initial);
+});
+
+it("replaces initial state completely when a restorer selects a different valid shape", async () => {
+  const initial = { mode: "text", text: "Default" } as { mode: "text"; text: string } | { mode: "count"; count: number };
+  const restored = { mode: "count" as const, count: 2 };
+  const restore = vi.fn(() => restored);
+  sessionStorage.setItem("application-update-v1", JSON.stringify({
+    schema: 1, url: location.href, savedAt: Date.now(), states: { "variant:v1": restored },
+    queries: { queries: [], mutations: [] }, view: { scroll: {}, focus: null, selection: null },
+  }));
+  function VariantDraft() {
+    const [state] = useApplicationState("variant:v1", initial, restore);
+    return <output>{JSON.stringify(state)}</output>;
+  }
+  mount(<VariantDraft />);
+  await tick(50);
+
+  expect(restore).toHaveBeenCalledWith(restored, initial);
+  expect(JSON.parse(screen.getByRole("status").textContent ?? "")).toEqual(restored);
+  fireEvent.pageHide(window);
+  expect(readUpdateSnapshot()?.states["variant:v1"]).toEqual(restored);
+});
+
+it("restores catalogue pagination, equivalent search text, scroll, and focus while refreshing stale results", async () => {
+  const timestamp = Date.now();
+  client.setQueryData(["catalog", "/api/products", 1, ""], initialData, { updatedAt: timestamp });
+  const first = mount(<Catalog name="Test" title="Products" endpoint="/api/products" updatedAt={timestamp} />);
   fireEvent.click(screen.getByRole("button", { name: "Next" }));
   await tick(100);
   const results = screen.getByRole("region", { name: "Products" });
@@ -132,15 +220,23 @@ it("restores catalogue pagination, exact results, equivalent search text, scroll
   first.unmount();
   client.clear();
   vi.stubEnv("NEXT_PUBLIC_APPLICATION_VERSION", "version-b");
-  mount(<Catalog name="Test" title="Products" endpoint="/api/products" data={{ ...initialData, total: 1 }} />);
+  const updatedAt = Date.now();
+  const refreshed = Promise.withResolvers<Response>();
+  client.setQueryData(["catalog", "/api/products", 1, ""], initialData, { updatedAt });
+  vi.mocked(fetch).mockReturnValueOnce(refreshed.promise);
+  mount(<Catalog name="Test" title="Products" endpoint="/api/products" updatedAt={updatedAt} />);
+  await tick(50);
+  expect(screen.getByRole("heading", { name: "Second item" })).toBeTruthy();
+  expect(client.isFetching()).toBe(1);
+  await act(async () => refreshed.resolve(Response.json({ ...initialData, page: 2, items: [{ ...initialData.items[0], id: 2, title: "Updated second item" }] })));
   await tick(50);
 
   expect(screen.getByText("Page 2 of 3")).toBeTruthy();
-  expect(screen.getByRole("heading", { name: "Second item" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Updated second item" })).toBeTruthy();
   expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("   ");
   expect(screen.getByRole("region", { name: "Products" }).scrollTop).toBe(140);
   expect(document.activeElement).toBe(screen.getByRole("searchbox"));
-  expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/api/products"))).toHaveLength(1);
+  expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/api/products"))).toHaveLength(2);
 });
 
 it("keeps waiting during typing, composition, requests, and pending mutations", async () => {

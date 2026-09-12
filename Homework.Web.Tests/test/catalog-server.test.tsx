@@ -1,17 +1,33 @@
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/products/route";
 import { catalog } from "@/app/catalog";
 import { CatalogPage } from "@/generic-configurables/catalog/catalog-page";
 import type { CatalogData } from "@/generic-configurables/catalog/types";
 import { getQueryClient, QueryProvider } from "@/generic-configurables/query";
+import { ApplicationUpdate } from "@/generic-configurables/application/update";
+import { readUpdateSnapshot } from "@/generic-configurables/application/update/update-snapshot";
 
 vi.mock("next/server", () => ({ connection: vi.fn().mockResolvedValue(undefined) }));
 
 const products = Array.from({ length: 26 }, (_, id) => ({ id, title: `Product ${id}`, brand: "Brand", price: id, discountPercentage: 10, rating: id }));
 
+beforeEach(() => {
+  vi.stubGlobal("ResizeObserver", class {
+    observe = vi.fn((element: Element) => { element.getAnimations = vi.fn(() => []); });
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+  });
+  vi.stubGlobal("scrollTo", vi.fn());
+  sessionStorage.clear();
+});
+
 afterEach(() => {
+  cleanup();
   getQueryClient().clear();
+  sessionStorage.clear();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -23,9 +39,9 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     const content = await CatalogPage(catalog);
     const page = new DOMParser().parseFromString(renderToString(<QueryProvider>{content}</QueryProvider>), "text/html");
 
-    expect(content.props.data.items).toHaveLength(12);
-    expect(content.props.data).toMatchObject({ total: 26, page: 1, pageSize: 12 });
-    expect(content.props.source).toBeUndefined();
+    expect(content.props.state.queries).toHaveLength(1);
+    expect(content.props.state.queries[0].state.data).toMatchObject({ total: 26, page: 1, pageSize: 12 });
+    expect(content.props.children.props.source).toBeUndefined();
     expect(page.querySelectorAll("li")).toHaveLength(12);
     expect(page.querySelector("li h2")?.textContent).toBe("Product 0");
     expect(page.querySelectorAll("li s")).toHaveLength(12);
@@ -41,9 +57,61 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     const content = await CatalogPage(catalog);
     const page = new DOMParser().parseFromString(renderToString(<QueryProvider>{content}</QueryProvider>), "text/html");
 
-    expect(content.props.data).toBeUndefined();
+    expect(content.props.state.queries[0].state.data).toBeUndefined();
     expect(page.querySelector('[role="alert"]')?.textContent).toContain("We couldn’t load products.");
     expect(page.querySelector('[role="alert"] button')?.textContent).toBe("Try again");
+  });
+
+  it("replaces cached products with newer server data when the catalogue mounts again without fetching twice", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ products })).mockResolvedValueOnce(Response.json({ products: [{ ...products[0], title: "Updated product" }] }));
+    vi.stubGlobal("fetch", fetch);
+    const first = render(await CatalogPage(catalog), { wrapper: QueryProvider });
+    expect(screen.getByRole("heading", { name: "Product 0" })).toBeTruthy();
+    first.unmount();
+    now.mockReturnValue(2_000);
+
+    render(await CatalogPage(catalog), { wrapper: QueryProvider });
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Updated product" })).toBeTruthy());
+    expect(screen.queryByRole("heading", { name: "Product 0" })).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("1–1 of 1");
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls.every(([url]) => url === catalog.source.url)).toBe(true);
+  });
+
+  it("recovers from a saved server failure when the next server render succeeds", async () => {
+    const fetch = vi.fn().mockRejectedValueOnce(new Error("Unavailable")).mockResolvedValueOnce(Response.json({ products }));
+    vi.stubGlobal("fetch", fetch);
+    const first = render(<QueryProvider><ApplicationUpdate>{await CatalogPage(catalog)}</ApplicationUpdate></QueryProvider>);
+    expect(screen.getByRole("alert").textContent).toContain("We couldn’t load products.");
+    fireEvent.pageHide(window);
+    expect(readUpdateSnapshot()?.states["catalog:/api/products:v1"]).toEqual({ search: "", appliedSearch: "", page: 1 });
+    first.unmount();
+    getQueryClient().clear();
+
+    render(<QueryProvider><ApplicationUpdate>{await CatalogPage(catalog)}</ApplicationUpdate></QueryProvider>);
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Product 0" })).toBeTruthy());
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps successful new server data when restoring an older first-page snapshot", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ products })).mockResolvedValueOnce(Response.json({ products: [{ ...products[0], title: "Recovered product" }] }));
+    vi.stubGlobal("fetch", fetch);
+    const first = render(<QueryProvider><ApplicationUpdate>{await CatalogPage(catalog)}</ApplicationUpdate></QueryProvider>);
+    fireEvent.pageHide(window);
+    first.unmount();
+    getQueryClient().clear();
+    now.mockReturnValue(2_000);
+
+    render(<QueryProvider><ApplicationUpdate>{await CatalogPage(catalog)}</ApplicationUpdate></QueryProvider>);
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Recovered product" })).toBeTruthy());
+    expect(screen.queryByRole("heading", { name: "Product 0" })).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it.each([
@@ -55,9 +123,10 @@ describe("Catalogue server rendering and JSON endpoint", () => {
     const content = await CatalogPage(catalog);
     const page = new DOMParser().parseFromString(renderToString(<QueryProvider>{content}</QueryProvider>), "text/html");
 
-    expect(content.props.data.items[0].amount).toBe(price);
-    expect(content.props.data.items[0].discount?.percentage).toBe(percentage);
-    expect(content.props.data.items[0].discount?.amount).toBeCloseTo(discounted, 6);
+    const data = content.props.state.queries[0].state.data as CatalogData;
+    expect(data.items[0].amount).toBe(price);
+    expect(data.items[0].discount?.percentage).toBe(percentage);
+    expect(data.items[0].discount?.amount).toBeCloseTo(discounted, 6);
     expect(page.querySelector("li")?.textContent).toContain(displayed);
   });
 

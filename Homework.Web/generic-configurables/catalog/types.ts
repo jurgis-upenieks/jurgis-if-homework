@@ -36,10 +36,7 @@ export type CatalogData = {
   pageSize: number;
 };
 
-export type CatalogProps = Omit<CatalogPageProps, "source" | "pageSize"> & {
-  data?: CatalogData;
-  failed?: boolean;
-};
+export type CatalogProps = Omit<CatalogPageProps, "source" | "pageSize"> & { updatedAt?: number };
 
 export type CollectionRequest = {
   page?: number;

@@ -75,7 +75,7 @@ export function saveUpdateSnapshot(state: ApplicationStateScope, client: QueryCl
       schema: 1,
       url: location.href,
       savedAt: Date.now(),
-      states: Object.fromEntries([...state.readStates].map(([key, readState]) => [key, readState()])),
+      states: Object.fromEntries([...state.saved, ...[...state.readStates].map(([key, readState]) => [key, readState()])]),
       queries: dehydrate(client, { shouldDehydrateMutation: () => false }),
       view: {
         scroll,
@@ -92,9 +92,6 @@ export function saveUpdateSnapshot(state: ApplicationStateScope, client: QueryCl
 }
 
 export function restoreUpdateQueries(client: QueryClient, snapshot: UpdateSnapshot) {
-  for (const query of snapshot.queries.queries) {
-    client.getQueryCache().get(query.queryHash)?.setState({ ...query.state, fetchStatus: "idle" });
-  }
   hydrate(client, snapshot.queries);
   clearUpdateSnapshot();
 }

@@ -43,7 +43,8 @@ Buttons and input frames use `min-h-control-height`: 80% of level 7, with a
 2.75rem minimum to preserve touch targets and scaling with font preferences.
 The input field fills its frame without adding a second minimum height inside
 the border, so inputs and buttons have matching outer heights. Text can still
-increase control height when needed.
+increase control height when needed. Inputs, buttons, cards, tooltips, and the
+skip link use clamp padding directly for their insets.
 
 The default Tailwind spacing, text-size, radius, shadow, container, and breakpoint
 scales are disabled. Use the clamp utilities in new components, including empty,
@@ -58,10 +59,12 @@ control height when needed. Constrain grid track minimums with `min(100%, …)` 
 use maximum widths on containers so the scale's lower bounds cannot cause overflow.
 
 The catalogue wraps its toolbar and fits card columns to available space.
-Card insets and title/detail separation use the content gap. Cards stretch within
+Card insets use the content gap; title/detail separation uses level 2. Cards stretch within
 each grid row, with the brand at the bottom left and pricing at the bottom right.
-The brand retains a level 7 minimum column while long prices can wrap. Product
-titles and brands use single-line ellipsis when their text does not fit.
+The brand retains a level 7 minimum column while long prices wrap. Current prices
+use level 4 text and original prices use level 3, retaining their central minimums
+without measured text shrinking. Shared card padding applies the content gap once.
+Product titles and brands use single-line ellipsis when their text does not fit.
 Discount badges round to whole percentages for display; the price calculation
 retains the exact source percentage. The badge and diagonal original-price strike
 use the primary theme color.
@@ -74,6 +77,8 @@ Base UI tooltip. Clipped static text becomes keyboard-focusable while existing
 controls retain their semantics and actions. Escape or an outside press dismisses
 the tooltip. Content, size, and font changes refresh detection; hidden, inert,
 loading, and editable content are excluded.
+Transform-only and scroll-area positioning changes do not trigger another
+document-wide scan; content, relevant styles, and accessibility changes still do.
 
 Catalogue and document pages share the dynamic viewport frame, background,
 content width, page headings, and bounded scrolling content row.
@@ -108,13 +113,18 @@ uses the shared Courier monospace font token.
 The shared query provider automatically displays a full-viewport loading overlay
 for all active TanStack Query queries and mutations, including retries and
 background refreshes. It stays visible until the last overlapping operation ends.
-All application data calls use this provider; individual components do not need
-loading-overlay flags or request wrappers.
+Browser data operations registered with this provider need no individual
+loading-overlay flags or request wrappers. Direct fetch calls outside TanStack
+Query, server-side retrieval, and the deployment event stream are not tracked.
+Browser catalogue requests have a 15-second transport deadline that releases
+loading feedback and permits a retry if the request stalls. The server's
+upstream product request has a separate 10-second deadline.
 
 The overlay uses the background theme color at 50% opacity and a rotating,
 indeterminate Base UI progress spinner. Its modal fades in over 2 seconds and fades
-out over 0.1 second using the shared transition-duration tokens. Rotation and fades
-remain enabled with reduced-motion preferences.
+out over 0.1 second using the shared transition-duration tokens. Reduced-motion
+preferences disable spinner rotation and transition animations while retaining
+visible loading feedback.
 The Base UI dialog blocks pointer, touch, keyboard, and scrolling interaction with
 the page while loading. Escape and outside clicks cannot dismiss it.
 The shared Input's `allowWhileLoading` option keeps an enabled input and its label
@@ -163,7 +173,8 @@ document required when the root layout fails.
 Interaction tests cover navigation destinations, visibility, and fallback
 recovery. Check fluid sizing in a real browser by measuring rendered element edges
 against the selected tokens in portrait, landscape, and short desktop viewports,
-with normal and enlarged root fonts. Unit tests do not simulate CSS layout.
+with normal and enlarged root fonts. Unit-test measurements exercise application
+decisions but do not validate the browser's CSS layout.
 
 Automatic deployment updates live in `update/`. The provider uses native
 EventSource to receive the compiled version through one open connection to
@@ -175,9 +186,12 @@ If a deployment HTTP error stops native reconnection, the updater reopens the
 failed stream after a short delay. Healthy streams stay open without new requests.
 It waits for idle interaction and completed queries and mutations, then atomically
 saves registered state, successful cached queries, scroll, and focus to per-tab
-session storage. A failed write cancels the reload. The next document restores
-models during hydration and scroll and focus after layout; user input stops
-deferred view restoration. Snapshots are URL-scoped, consumed once, and expire
+session storage. Restored state remains available while its component has not yet
+mounted; a mounted store's current state takes precedence when saving again.
+A failed write cancels the reload. The next document restores models during
+hydration and scroll and focus after layout; user input stops deferred view
+restoration. Newer server-rendered query data takes precedence over older snapshots.
+Snapshots are URL-scoped, consumed once, and expire
 after 24 hours. A one-minute cooldown prevents rapid repeated reloads if another
 server still returns the previous build.
 
@@ -186,11 +200,23 @@ Ordinary TanStack queries need no update-specific options or hooks: the built-in
 `IsRestoringProvider` pauses subscriptions while models and cached queries are
 restored, then each query resumes its normal freshness rules.
 
+Default restoration supports fixed-shape state described by its initial values.
+Nullable fields, dynamic records, heterogeneous arrays, and empty arrays that
+require element validation need an explicit restore callback. Defaults alone
+cannot describe those schemas or validate every JSON-compatible value.
+
 Use `useApplicationState("stable-component-key:v1", { field: initialValue })`
-from `application/application-state` for durable UI state. It returns the typed
-state and Zustand's existing state setter. JSON-compatible local stores register
-automatically with the application state context, without property drilling or
-update lifecycle code. Compatible snapshots preserve newly added fields' defaults.
+from `application/application-state` for state with a fixed shape. It returns the
+typed state and Zustand's existing state setter, and registers the store with
+the application state context. Each mounted store needs a unique stable key.
+The default restore preserves new field defaults and restores compatible nested
+fields declared by the initial state.
+
+For other shapes, pass `useApplicationState(key, initialState, restore)`.
+The callback receives the saved snapshot as `unknown` and the initial state;
+validate the complete state and return the typed result, or return `undefined`
+to retain the defaults. Persist only JSON-compatible values, and version state
+and query keys when their structures change incompatibly.
 Keep layout-derived measurements in ordinary React state so the new document
 remeasures the current viewport.
 
@@ -201,7 +227,6 @@ identities stable across releases. Ambiguous matches are skipped rather than
 restoring focus or scroll to the wrong element. Never persist credentials or
 selected files.
 
-Version state and query keys when changing their persisted structure incompatibly.
 The updater cannot preserve arbitrary React internals or live browser resources;
 durable component state must use the application state hook. Existing clients must load this
 feature once before subsequent releases can update them. Deployments that leave

@@ -114,6 +114,46 @@ it("keeps the pending pointer-leave dismissal during a document or resize refres
   expect(screen.queryByRole("tooltip")).toBeNull();
 });
 
+it("does not rescan page text when scrolling updates only a thumb transform and scroll-area offsets", async () => {
+  render(<><section><h2 className="ellipsis">Clipped heading</h2><div data-testid="thumb" /></section><ApplicationTextTooltip /></>);
+  const title = screen.getByRole("heading");
+  const thumb = screen.getByTestId("thumb");
+  measure(title);
+  await tick();
+  expect(title.tabIndex).toBe(0);
+  const scans = vi.spyOn(document.body, "querySelectorAll");
+
+  thumb.style.transform = "translate3d(0, 30px, 0)";
+  title.parentElement?.style.setProperty("--scroll-area-overflow-y-start", "30px");
+  title.parentElement?.style.setProperty("--scroll-area-overflow-y-end", "70px");
+  await tick();
+
+  expect(scans).not.toHaveBeenCalled();
+  expect(title.tabIndex).toBe(0);
+});
+
+it("discovers inline truncation and rechecks text when an ancestor's font style changes", async () => {
+  render(<><section><h2>Full heading</h2></section><ApplicationTextTooltip /></>);
+  const title = screen.getByRole("heading");
+  measure(title);
+  await tick();
+  expect(title.hasAttribute("tabindex")).toBe(false);
+
+  title.style.textOverflow = "ellipsis";
+  title.style.overflowX = "hidden";
+  await tick();
+  expect(title.tabIndex).toBe(0);
+  fireEvent.click(title);
+  await tick();
+  expect(screen.getByRole("tooltip").textContent).toBe("Full heading");
+
+  measure(title, 100);
+  title.parentElement?.style.setProperty("font-family", "monospace");
+  await tick();
+  expect(title.hasAttribute("tabindex")).toBe(false);
+  expect(screen.queryByRole("tooltip")).toBeNull();
+});
+
 it("keeps a hovered tooltip open when its clipped heading loses focus", async () => {
   render(<><h2 className="ellipsis">Full clipped heading</h2><ApplicationTextTooltip /></>);
   const title = screen.getByRole("heading");

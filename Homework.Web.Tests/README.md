@@ -52,17 +52,27 @@ npm --prefix Homework.Web.Tests run build
 ## Tests and dependency resolution
 
 Application tests live in `test/` as `*.test.ts` or `*.test.tsx`.
+The project does not currently collect coverage percentages or enforce coverage
+thresholds. A passing run verifies the exercised cases; it does not establish
+complete coverage, real browser layout, or full accessibility.
 They cover the repository's server request isolation and browser client reuse,
 the global overlay's combined query and mutation activity, and its custom logic
 for keeping search editable while blocking and restoring other controls.
 Catalogue tests cover uncached server retrieval and validation, the inclusive
 discount threshold, global ranking, server-rendered first-page data, JSON page
 requests, title-only search across pages, pagination boundaries, cancellation,
-fresh data on revisits, immediate form submission, empty and recoverable error states.
+stalled browser requests and retry recovery, fresh data on page and route revisits,
+immediate form submission, empty and
+recoverable error states, and successful SSR data after a previously failed load.
 Header tests cover navigation destinations, current-page indicators, and access without a menu button.
+Tooltip tests cover overflow discovery, keyboard and pointer interactions,
+cleanup, and avoiding rescans for scroll-area positioning updates.
 Update tests cover pushed deployment events, absence of periodic requests, idle and offline deferral,
-pending saves and selected files, snapshot failures, compatible state additions, global cache restoration, implicit semantic scroll and focus recovery, ambiguous controls,
-and reload throttling. Streaming tests cover immediate delivery, reconnection after
+pending saves and selected files, snapshot failures, compatible nested state
+additions, explicit restoration of shapes that defaults cannot describe,
+deferred component registration, and cache restoration that preserves
+newer server data. They also cover implicit semantic scroll and focus recovery,
+ambiguous controls, and reload throttling. Streaming tests cover immediate delivery, reconnection after
 deployment errors, and connection cleanup.
 Deployment checks also compare page and endpoint versions.
 The test configuration maps Next.js's `server-only` marker to its bundled empty

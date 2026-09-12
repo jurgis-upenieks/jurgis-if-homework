@@ -5,7 +5,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ApplicationHeader } from "../application/application-header";
 import { ApplicationScrollArea, ApplicationScrollContent, ApplicationScrollViewport } from "../application/application-scroll-area";
 import { useApplicationState } from "../application/application-state";
-import { Button, Card, Input, useTextFit } from "../ui";
+import { Button, Card, Input } from "../ui";
 import { getSearchTokens } from "./search";
 import type { CatalogData, CatalogProps } from "./types";
 import layout from "../application/application.module.css";
@@ -13,32 +13,30 @@ import styles from "./catalog.module.css";
 
 export function Catalog({
   name, title, endpoint, navigation = [{ label: title, href: "/" }], trendingLabel = "Trending item", missingDetail = "Not specified",
-  currency = "EUR", data: initialData, failed: initialFailed = false,
+  currency = "EUR", updatedAt = 0,
 }: CatalogProps) {
   const id = useId();
   const searchInput = useRef<HTMLInputElement>(null);
   const results = useRef<HTMLDivElement>(null);
   const pagination = useRef<HTMLElement>(null);
-  const fitText = useTextFit();
-  const [{ search, appliedSearch, page, serverFailed }, update] = useApplicationState(`catalog:${endpoint}:v1`, { search: "", appliedSearch: "", page: 1, serverFailed: initialFailed });
+  const [{ search, appliedSearch, page }, update] = useApplicationState(`catalog:${endpoint}:v1`, { search: "", appliedSearch: "", page: 1 });
   const query = getSearchTokens(appliedSearch).join(" ");
-  const { data, isError, isFetching, refetch } = useQuery({
+  const { data, isError: failed, isFetching, refetch } = useQuery({
     queryKey: ["catalog", endpoint, page, query],
     queryFn: async ({ signal }): Promise<CatalogData> => {
       const url = new URL(endpoint, window.location.origin);
       url.searchParams.set("page", String(page));
       if (query) url.searchParams.set("search", query);
-      const response = await fetch(url, { signal, cache: "no-store" });
+      const response = await fetch(url, { signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]), cache: "no-store" });
 
       if (!response.ok) throw new Error(`Catalogue request failed (${response.status}).`);
       return response.json();
     },
-    initialData: page === 1 && !query ? initialData : undefined,
     placeholderData: keepPreviousData,
     staleTime: 0,
-    refetchOnMount: false,
+    refetchOnMount: (cached) => page !== 1 || Boolean(query) || !updatedAt || cached.state.dataUpdatedAt > updatedAt,
+    retryOnMount: false,
     retry: false,
-    enabled: !serverFailed,
   });
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -46,7 +44,6 @@ export function Catalog({
   const currentPage = data?.page ?? 1;
   const start = data ? (currentPage - 1) * data.pageSize : 0;
   const formatter = new Intl.NumberFormat("de-DE", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  const failed = serverFailed || isError;
   const loading = isFetching || (!data && !failed);
 
   const applySearch = useCallback((value: string) => {
@@ -106,7 +103,7 @@ export function Catalog({
                 className={styles.searchInput}
                 value={search}
                 allowWhileLoading
-                disabled={!initialData && !data}
+                disabled={!data && !updatedAt}
                 aria-controls={data && !failed ? `${id}-items` : undefined}
                 onValueChange={(search) => update({ search })}
               />
@@ -126,8 +123,7 @@ export function Catalog({
             <ApplicationScrollContent render={<section />} role="alert" className={styles.message}>
               <h2 className={styles.cardTitle}>We couldn’t load {title.toLowerCase()}.</h2>
               <p>Please try again in a moment.</p>
-              <Button variant="outline" className={styles.control}
-                onClick={() => { if (serverFailed) update({ serverFailed: false }); else void refetch(); }}>Try again</Button>
+              <Button variant="outline" className={styles.control} onClick={() => void refetch()}>Try again</Button>
             </ApplicationScrollContent>
           ) : (
             <ApplicationScrollContent render={<ul />} role="list" aria-label={title} className={styles.grid}>
@@ -143,10 +139,10 @@ export function Catalog({
                           </span>
                         )}
                         <span className={styles.prices}>
-                          <strong ref={fitText} className={styles.price}>
+                          <strong className={styles.price}>
                             <span className="sr-only">{item.discount ? "Discounted price: " : "Price: "}</span>{formatter.format(item.discount?.amount ?? item.amount)}
                           </strong>
-                          {item.discount && <s ref={fitText} className={styles.originalPrice}><span className="sr-only">Original price: </span>{formatter.format(item.amount)}</s>}
+                          {item.discount && <s className={styles.originalPrice}><span className="sr-only">Original price: </span>{formatter.format(item.amount)}</s>}
                         </span>
                       </span>
                     </p>

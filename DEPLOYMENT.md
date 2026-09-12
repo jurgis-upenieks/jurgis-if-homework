@@ -3,7 +3,7 @@
 This project runs as one Node.js 24 application on Azure App Service for Linux.
 Next.js retrieves fresh catalogue data and renders the first page's products in
 the initial HTML. Search and pagination request only the selected page's JSON
-from `/api/products`. Menus and rendering of subsequent pages run in the browser.
+from `/api/products`. Navigation and rendering of subsequent pages run in the browser.
 The deployment includes both sides and retains server-side rendering.
 
 The server fetches the external collection on every catalogue request to apply
@@ -212,8 +212,10 @@ Ordinary unit tests skip the HTTP checks when `DEPLOYMENT_URL` is unset.
   Check Node 24 LTS, the startup command, and the ZIP's root layout. The workflow
   extracts and deploys prebuilt files; server-side rebuilds must stay disabled.
 - The build needs access to npm and Google Fonts. Runtime needs outbound HTTPS
-  to `dummyjson.com`. Catalogue retrieval times out after ten seconds and
-  always requests fresh product data without caching it.
+  to `dummyjson.com`. Server requests to this source time out after ten seconds
+  and always retrieve fresh product data without caching it. Browser catalogue
+  requests have a separate 15-second deadline; a stalled request releases the
+  loading overlay and offers **Try again**.
 - `/health` deliberately does not call DummyJSON. An upstream failure can leave
   `/health` successful while the catalogue and its HTTP test fail. The existing
   **Try again** button retries the current JSON data request.
@@ -231,6 +233,18 @@ Ordinary unit tests skip the HTTP checks when `DEPLOYMENT_URL` is unset.
   Enable HTTP/2 in App Service for many simultaneous tabs. If switching to deployments
   that keep old instances alive, use a shared broadcaster such as Azure Web PubSub.
   An optional build-time `NEXT_PUBLIC_APPLICATION_VERSION` must be unique per release.
+- Automatic updates reload the document after saving registered JSON-compatible
+  UI state, successful query data, and identifiable scroll and focus positions.
+  Restored query data does not replace newer server-rendered results.
+  Durable state must use `useApplicationState` with stable, unique keys; incompatible
+  state and query structures require new keys. Default restoration only supports
+  fixed shapes described by initial values. Other shapes require an explicit
+  restore callback that validates saved data. Arbitrary React state and live
+  browser resources cannot be preserved. Do not persist credentials or selected files.
+  The updater waits while the tab is hidden or offline, interaction is active,
+  requests or mutations remain pending, or an upload has selected files. A failed
+  snapshot write cancels the automatic reload. Snapshots are URL-scoped and expire
+  after 24 hours; users may still notice the document reload or deployment interruption.
 - Deployment replaces files and restarts the app. A single B1 instance can have
   a brief interruption during deployment. This setup does not provide staging
   slots or automatic rollback.

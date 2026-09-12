@@ -120,12 +120,24 @@ export function ApplicationTextTooltip() {
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(refresh); };
     const resize = new ResizeObserver(schedule);
+    const previousStyle = document.createElement("span").style;
     const mutations = new MutationObserver((records) => {
-      if (records.some((record) => !popup.current?.parentElement?.contains(record.target))) schedule();
+      if (records.some((record) => {
+        if (popup.current?.parentElement?.contains(record.target)) return false;
+        if (record.attributeName !== "style" || !(record.target instanceof HTMLElement)) return true;
+        previousStyle.cssText = record.oldValue ?? "";
+        const currentStyle = record.target.style;
+        return [...new Set([...previousStyle, ...currentStyle])].some((property) => {
+          if (property === "transform" || property.startsWith("--scroll-area-")) return false;
+          return previousStyle.getPropertyValue(property) !== currentStyle.getPropertyValue(property) ||
+            previousStyle.getPropertyPriority(property) !== currentStyle.getPropertyPriority(property);
+        });
+      })) schedule();
     });
     resize.observe(document.body);
     mutations.observe(document.documentElement, {
-      subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class", "style", "hidden", "inert", "aria-hidden", "aria-busy"],
+      subtree: true, childList: true, characterData: true, attributes: true, attributeOldValue: true,
+      attributeFilter: ["class", "style", "hidden", "inert", "aria-hidden", "aria-busy"],
     });
     window.addEventListener("resize", schedule, options);
     window.addEventListener("blur", hide, { signal: lifetime.signal });
@@ -183,7 +195,7 @@ export function ApplicationTextTooltip() {
     }}>
       <Tooltip.Portal>
         <Tooltip.Positioner anchor={tooltip.anchor} positionMethod="fixed" className={styles.positioner}
-          sideOffset={() => popup.current ? Number.parseFloat(getComputedStyle(popup.current).columnGap) / Math.SQRT2 || 0 : 0}>
+          sideOffset={() => popup.current ? Number.parseFloat(getComputedStyle(popup.current).paddingInlineStart) / Math.SQRT2 || 0 : 0}>
           <Tooltip.Popup ref={popup} id={id} role="tooltip" className={styles.popup}>
             <Tooltip.Arrow className={styles.arrow} />
             <span>{tooltip.text}</span>

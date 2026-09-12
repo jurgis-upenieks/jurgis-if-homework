@@ -23,19 +23,31 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("restores exact cached model data and timestamps over newer SSR data", () => {
-  client.setQueryData(["models"], { rows: ["saved"] }, { updatedAt: 100 });
-  const savedState = client.getQueryState(["models"]);
+it.each([{ serverTimestamp: 50, expected: "saved" }, { serverTimestamp: 200, expected: "new SSR data" }])(
+  "restores cached models without replacing newer server data: $serverTimestamp", ({ serverTimestamp, expected }) => {
+    client.setQueryData(["models"], { rows: ["saved"] }, { updatedAt: 100 });
+    expect(saveUpdateSnapshot(state, client)).toBe(true);
+    const snapshot = readUpdateSnapshot();
+    expect(snapshot?.states["model:v1"]).toEqual({ draft: { rows: [1, 2], name: "Draft" }, open: true });
+    expect(snapshot?.queries.queries.map((query) => query.queryKey)).toEqual([["models"]]);
+    if (!snapshot) throw new Error("Snapshot missing.");
+    client.setQueryData(["models"], { rows: ["new SSR data"] }, { updatedAt: serverTimestamp });
+    restoreUpdateQueries(client, snapshot);
+    expect(client.getQueryData(["models"])).toEqual({ rows: [expected] });
+    expect(client.getQueryState(["models"])?.dataUpdatedAt).toBe(Math.max(100, serverTimestamp));
+    expect(readUpdateSnapshot()).toBeNull();
+  },
+);
+
+it("retains unmounted restored models while mounted models supply their latest state", () => {
+  state.saved.set("delayed:v1", { text: "Waiting for its component" });
+  state.saved.set("model:v1", { open: false });
+
   expect(saveUpdateSnapshot(state, client)).toBe(true);
-  const snapshot = readUpdateSnapshot();
-  expect(snapshot?.states["model:v1"]).toEqual({ draft: { rows: [1, 2], name: "Draft" }, open: true });
-  expect(snapshot?.queries.queries.map((query) => query.queryKey)).toEqual([["models"]]);
-  if (!snapshot) throw new Error("Snapshot missing.");
-  client.setQueryData(["models"], { rows: ["new SSR data"] });
-  restoreUpdateQueries(client, snapshot);
-  expect(client.getQueryData(["models"])).toEqual({ rows: ["saved"] });
-  expect(client.getQueryState(["models"])).toEqual(savedState);
-  expect(readUpdateSnapshot()).toBeNull();
+  expect(readUpdateSnapshot()?.states).toEqual({
+    "delayed:v1": { text: "Waiting for its component" },
+    "model:v1": { draft: { rows: [1, 2], name: "Draft" }, open: true },
+  });
 });
 
 it("ignores and removes corrupted, incompatible, expired, or differently addressed snapshots", () => {

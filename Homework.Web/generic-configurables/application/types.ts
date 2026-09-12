@@ -18,6 +18,8 @@ export type ApplicationErrorProps = { retry: () => void };
 
 export type ApplicationState = Record<string, ApplicationStateValue>;
 
+export type ApplicationStateRestorer<T extends ApplicationState> = (saved: unknown, initial: T) => T | undefined;
+
 
 export type ApplicationTextTooltipState = { anchor: HTMLElement; text: string };
 

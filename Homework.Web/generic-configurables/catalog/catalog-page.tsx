@@ -1,20 +1,27 @@
 import "server-only";
 
 import { connection } from "next/server";
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { Catalog } from "./catalog";
-import { loadCollection } from "./collection.server";
-import type { CatalogData, CatalogPageProps } from "./types";
+import { collectionQuery } from "./collection.server";
+import type { CatalogPageProps } from "./types";
 
 export async function CatalogPage({ source, pageSize, ...props }: CatalogPageProps) {
   await connection();
 
-  let data: CatalogData;
+  const client = new QueryClient();
+  const queryKey = ["catalog", props.endpoint, 1, ""];
 
   try {
-    data = await loadCollection(source, { pageSize });
+    await client.query({ ...collectionQuery(source, { pageSize }), queryKey });
   } catch {
-    return <Catalog {...props} failed />;
+    const error = new Error("Catalogue is temporarily unavailable.");
+    client.getQueryCache().find({ queryKey })?.setState({ error, fetchFailureReason: error });
   }
 
-  return <Catalog {...props} data={data} />;
+  return (
+    <HydrationBoundary state={dehydrate(client, { shouldDehydrateQuery: () => true })}>
+      <Catalog {...props} updatedAt={client.getQueryState(queryKey)?.dataUpdatedAt} />
+    </HydrationBoundary>
+  );
 }

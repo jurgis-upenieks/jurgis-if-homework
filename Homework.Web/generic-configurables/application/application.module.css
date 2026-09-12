@@ -1,8 +1,8 @@
 @reference "./application.css";
 
 .skipLink {
-  @apply sr-only focus:not-sr-only focus:fixed focus:start-clamp-4 focus:top-clamp-4 focus:z-50 focus:flex focus:min-h-clamp-7 focus:items-center focus:gap-clamp-2;
-  @apply focus:bg-background focus:text-foreground focus:outline-(length:--spacing-clamp-1) focus:before:content-[''] focus:after:content-[''];
+  @apply sr-only focus:not-sr-only focus:fixed focus:start-clamp-4 focus:top-clamp-4 focus:z-50 focus:flex focus:min-h-clamp-7 focus:items-center focus:px-clamp-2;
+  @apply focus:bg-background focus:text-foreground focus:outline-(length:--spacing-clamp-1);
 }
 
 .header {

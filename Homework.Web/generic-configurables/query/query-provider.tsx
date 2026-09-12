@@ -61,7 +61,7 @@ export function QueryProvider({ children }: PropsWithChildren) {
         <Dialog.Portal keepMounted>
           <Dialog.Popup ref={overlay} aria-label="Loading" initialFocus={shouldMoveFocus} finalFocus={shouldMoveFocus} className={styles.overlay}>
             <Progress.Root value={null} aria-label="Loading" aria-live="polite" aria-hidden={!loading} data-loading={loading}>
-              <span aria-hidden="true" className={`${styles.spinner} animate-spin`} />
+              <span aria-hidden="true" className={styles.spinner} />
               <span className="sr-only">{loading ? "Loading, please wait." : null}</span>
             </Progress.Root>
           </Dialog.Popup>

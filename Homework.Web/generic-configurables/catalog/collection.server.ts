@@ -1,12 +1,13 @@
 import "server-only";
 
+import { queryOptions } from "@tanstack/react-query";
 import { getQueryClient } from "../query";
 import { isRecord } from "../utils";
 import { getSearchTokens, normalizeSearchText } from "./search";
 import type { CatalogData, CatalogPageProps, CollectionRequest, CollectionSource } from "./types";
 
-export function loadCollection(source: CollectionSource, { page = 1, pageSize = 12, search = "", signal: requestSignal }: CollectionRequest = {}) {
-  return getQueryClient().query({
+export function collectionQuery(source: CollectionSource, { page = 1, pageSize = 12, search = "", signal: requestSignal }: CollectionRequest = {}) {
+  return queryOptions({
     queryKey: ["catalog", source, page, pageSize, search],
     retry: false,
     staleTime: 0,
@@ -88,6 +89,10 @@ export function loadCollection(source: CollectionSource, { page = 1, pageSize = 
       return data;
     },
   });
+}
+
+export function loadCollection(source: CollectionSource, request: CollectionRequest = {}) {
+  return getQueryClient().query(collectionQuery(source, request));
 }
 
 export function createCollectionRoute({ source, pageSize }: Pick<CatalogPageProps, "source" | "pageSize">) {
