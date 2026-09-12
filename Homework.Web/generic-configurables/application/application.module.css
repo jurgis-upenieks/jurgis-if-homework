@@ -52,7 +52,7 @@
 .page {
   @apply grid h-dvh grid-rows-[repeat(2,auto_var(--spacing-viewport-gap))_minmax(var(--spacing-clamp-7),1fr)_var(--spacing-viewport-gap)] bg-background;
   @apply bg-linear-to-br from-secondary via-background to-accent/40 text-foreground;
-  @apply grid-cols-[minmax(0,1fr)_var(--spacing-clamp-3)];
+  @apply grid-cols-1;
 }
 
 .page > .header {
@@ -72,7 +72,7 @@
 }
 
 .scrollbar {
-  @apply row-[4/-1] z-30 flex w-clamp-3 justify-center bg-muted;
+  @apply row-[4/-1] z-30 flex w-content-gap justify-center;
 }
 
 .page:has(> .main > footer) > .scrollbar {

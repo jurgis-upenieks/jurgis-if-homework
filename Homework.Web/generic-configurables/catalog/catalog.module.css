@@ -85,11 +85,15 @@
 }
 
 .pagination[data-stacked] {
-  @apply grid-cols-[max-content_minmax(0,var(--spacing-pagination-info))_max-content];
+  @apply grid-cols-[repeat(2,max-content)];
+}
+
+.pagination[data-stacked] .control:last-child {
+  @apply col-start-2;
 }
 
 .pagination[data-stacked] .pageInfo {
-  @apply col-span-full row-start-2;
+  @apply col-span-full row-start-2 [contain:inline-size];
 }
 
 .pagination[role="presentation"] {

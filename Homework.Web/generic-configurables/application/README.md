@@ -93,8 +93,10 @@ track ends at the footer's top edge. The footer keeps its intrinsic height as it
 controls wrap; pages without a footer keep the track down to the viewport bottom.
 Its named viewport contains the semantic list or message,
 and its content observer keeps the thumb synchronized with changing content heights.
-A clamp-sized gutter keeps the track clear of the page controls, while the site
-header spans the full width. Base UI supplies thumb sizing, dragging, and wheel handling;
+The transparent track overlays the existing page edge spacing without reserving
+a grid column. Its width uses the content gap to keep its pointer target clear of
+the content. The main content and site header can both use the full page width.
+Base UI supplies thumb sizing, dragging, track clicks, and wheel handling;
 native content scrolling and keyboard focus remain available inside the viewport.
 
 The document page renders the repository README during the production build.
@@ -141,8 +143,9 @@ and Next with matching typography and a level 3 horizontal gap. Its middle colum
 uses the `pagination-info` token, eight times the level 3 font size, keeping the
 buttons steady as the text changes. A ResizeObserver compares the unwrapped labels
 with the space left between the buttons and moves both labels to a centered row
-below the buttons only when they no longer fit. Both lines retain the displayed
-page's values until the next page arrives.
+below the buttons only when they no longer fit. In that layout, the buttons form a
+centered pair with a level 3 gap. Both lines retain the displayed page's values
+until the next page arrives.
 
 Navigation stays visible and wraps when its content and clamp gaps no longer fit.
 The header uses native flex wrapping without a menu button or viewport breakpoints.
