@@ -97,11 +97,3 @@ type Role = typeof roles[number];
 ## 19. All template/layout should be 100% accessibility compliant! 
 
 ## 20. When making changes, MUST NOT revert/undo the existing local uncommitted changes.
-
-## 21. MUST NOT rely on build and lint commands for determining if your changes introduced regressions (such corner-cutting is not allowed). Instead, when checking if your changes introduced regressions, MUST perform a proper code analysis (actually analyzing directly and indirectly related code) to determine if any visual or functional regressions have been introduced. And must be truly fully thorough to cover all the directly and indirectly related code, and must inspect all that code truly very closely and very carefully. Before doing rule #22, MUST always do this rule (#21) and never skip it.
-
-## 22. MUST NOT run build or lint commands in-between making fragments of changes while fulfilling a user prompt (basically running build and lint commands is not allowed after each code-changes step)! Only after making all the changes for a particular user prompt, MUST check for each touched project if there are any lint errors and build errors (both operations combined by running a single command `npm run build 2>&1` for each touched project, that runs both lint checks and build checks) and fix them (so basically there can be only a single build and lint run for each touched project for each user prompt, which can be only at the very end of fulfilling a user prompt). The only exception when that command is allowed to be run more than 1 time per prompt, is when the first run of the command reported errors, then, after agent finished fixing those errors, it is allowed (and only in that case) to run the command again to verify if the errors are no longer reported. But running build+lint command should not be used for determining if regressions have been introduced (for that refer to rule #21).
-
-## 23. After performing rule #22, if it reports no errors, don't perform any further code analysis, code diffing, git status, no summary/report of changes, or anything else, just end the user prompt.
-
-## 24. Always have the changes to repository root README.md synchronized also to the "Technical details" page. The "Technical details" page should never be left outdated relative to the changes in repository root README.md.

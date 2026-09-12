@@ -77,7 +77,7 @@
 }
 
 .paginationRow {
-  @apply grid items-center gap-clamp-2 self-start;
+  @apply grid items-center gap-clamp-3 self-start;
 }
 
 .footerNote {
