@@ -80,15 +80,13 @@
    - International character insensitive;
    - Order insensitive;
 
-# 15. I have configured the project so that, every time a new version is re-deployed to production, a push signal from a server is sent to all clients (not with periodic pooling from client-side) and all clients automatically get their client-side app versions updated in run-time in a fully seamless manner - preserving all data model states, scroll positions, etc. Basically, a user can be actively be using the app, and will not even notice that his client side app automatically updates to a newer version.
-
-# 16. Technologies stack
+# 15. Technologies stack
  - TypeScript: strong types for business domain model data and component configuration.
  - Node.js 24 and npm: runs the app server and deployment packaging; npm manages dependencies and scripts.
  - React and React DOM: for implementing custom components - product cards, search, pagination, navigation, and page hydration.
  - Next.js and App Router: for full-stack app, server-rendered products, static Technical details, and `/api/products` and `/health` endpoints.
  - Zustand: central data access state management solution to avoid default property drilling.
- - TanStack Query: manager remote calls to from client-side to server-side and to external service side - product fetching, request errors, the shared loading overlay, and query-cache restoration.
+ - TanStack Query: manager remote calls to from client-side to server-side and to external service side - product fetching, request errors, the shared loading overlay, and query caching.
  - DummyJSON supplies products; Fetch retrieves them server-side and calls `/api/products` client-side.
  - Tailwind CSS, PostCSS, and CSS Modules: css bootstrap solution.
  - shadcn/ui + Base UI: a reusable components solution for product cards, search input, pagination buttons, loading overlay, and scrollbars.

@@ -67,14 +67,6 @@ recoverable error states, and successful SSR data after a previously failed load
 Header tests cover navigation destinations, current-page indicators, and access without a menu button.
 Tooltip tests cover overflow discovery, keyboard and pointer interactions,
 cleanup, and avoiding rescans for scroll-area positioning updates.
-Update tests cover pushed deployment events, absence of periodic requests, idle and offline deferral,
-pending saves and selected files, snapshot failures, compatible nested state
-additions, explicit restoration of shapes that defaults cannot describe,
-deferred component registration, and cache restoration that preserves
-newer server data. They also cover implicit semantic scroll and focus recovery,
-ambiguous controls, and reload throttling. Streaming tests cover immediate delivery, reconnection after
-deployment errors, and connection cleanup.
-Deployment checks also compare page and endpoint versions.
 The test configuration maps Next.js's `server-only` marker to its bundled empty
 module so server helpers can be exercised alongside the browser components.
 Health checks cover the

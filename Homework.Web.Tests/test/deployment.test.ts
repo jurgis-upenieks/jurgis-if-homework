@@ -28,37 +28,6 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     expect(page.querySelector('[role="alert"]')).toBeNull();
   });
 
-  it("publishes the same uncached version used by the rendered application", async () => {
-    const response = await fetch(new URL("/api/version", deploymentUrl), { cache: "no-store", signal: AbortSignal.timeout(10_000) });
-    expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe("no-store");
-    const version = page.querySelector('meta[name="application-version"]')?.getAttribute("content");
-    expect(version).toBeTruthy();
-    expect(version).not.toBe("development");
-    expect(await response.json()).toEqual({ version });
-  }, 15_000);
-
-  it("pushes the deployed version immediately over an unbuffered event stream", async () => {
-    const response = await fetch(new URL("/api/version", deploymentUrl), { headers: { Accept: "text/event-stream" }, signal: AbortSignal.timeout(10_000) });
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toContain("text/event-stream");
-    expect(response.headers.get("cache-control")).toBe("no-store, no-transform");
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-    let message = "";
-    try {
-      while (!message.includes("\n\n")) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        message += decoder.decode(value, { stream: true });
-      }
-      const version = page.querySelector('meta[name="application-version"]')?.getAttribute("content");
-      expect(message).toContain(`data: ${JSON.stringify(version)}\n\n`);
-    } finally {
-      await reader.cancel();
-    }
-  }, 15_000);
-
   it("serves the README documentation from the standalone package with both navigation destinations", async () => {
     const response = await fetch(new URL("/technical-details", deploymentUrl), { signal: AbortSignal.timeout(10_000) });
     expect(response.status).toBe(200);

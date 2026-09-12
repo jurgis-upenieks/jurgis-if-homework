@@ -16,16 +16,5 @@ export type ApplicationMessageProps = {
 
 export type ApplicationErrorProps = { retry: () => void };
 
-export type ApplicationState = Record<string, ApplicationStateValue>;
-
-export type ApplicationStateRestorer<T extends ApplicationState> = (saved: unknown, initial: T) => T | undefined;
-
 
 export type ApplicationTextTooltipState = { anchor: HTMLElement; text: string };
-
-type ApplicationStateValue = string | number | boolean | null | ApplicationStateValue[] | { [key: string]: ApplicationStateValue };
-
-export type ApplicationStateScope = {
-  saved: Map<string, ApplicationState>;
-  readStates: Map<string, () => ApplicationState>;
-};

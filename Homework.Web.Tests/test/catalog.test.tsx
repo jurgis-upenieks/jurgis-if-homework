@@ -68,6 +68,24 @@ async function loaded() {
 }
 
 describe("Catalogue interaction", () => {
+  it("starts a newly mounted catalogue with empty search and the first page", async () => {
+    const initialData = firstPage(1);
+    const first = render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, initialData);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "iPhone" } });
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await loaded();
+    expect(screen.getByText("Page 2 of 2")).toBeTruthy();
+    expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("iPhone");
+    first.unmount();
+
+    render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, initialData);
+
+    expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("");
+    expect(screen.getByText("Page 1 of 5")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "iPhone 9" })).toBeTruthy();
+  });
+
   it("submits pending search immediately, resets pagination, and cancels the obsolete debounce", async () => {
     render(<Catalog endpoint={endpoint} name="Homework" title="Products" />, firstPage(2));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));

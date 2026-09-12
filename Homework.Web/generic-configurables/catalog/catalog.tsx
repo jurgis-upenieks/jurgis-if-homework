@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useStore } from "zustand";
+import { createStore } from "zustand/vanilla";
 import { ApplicationHeader } from "../application/application-header";
 import { ApplicationScrollArea, ApplicationScrollContent, ApplicationScrollViewport } from "../application/application-scroll-area";
-import { useApplicationState } from "../application/application-state";
 import { Button, Card, Input } from "../ui";
 import { getSearchTokens } from "./search";
 import type { CatalogData, CatalogProps } from "./types";
@@ -19,7 +20,9 @@ export function Catalog({
   const searchInput = useRef<HTMLInputElement>(null);
   const results = useRef<HTMLDivElement>(null);
   const pagination = useRef<HTMLElement>(null);
-  const [{ search, appliedSearch, page }, update] = useApplicationState(`catalog:${endpoint}:v1`, { search: "", appliedSearch: "", page: 1 });
+  const [store] = useState(() => createStore(() => ({ search: "", appliedSearch: "", page: 1 })));
+  const { search, appliedSearch, page } = useStore(store);
+  const update = store.setState;
   const query = getSearchTokens(appliedSearch).join(" ");
   const { data, isError: failed, isFetching, refetch } = useQuery({
     queryKey: ["catalog", endpoint, page, query],

@@ -115,7 +115,7 @@ for all active TanStack Query queries and mutations, including retries and
 background refreshes. It stays visible until the last overlapping operation ends.
 Browser data operations registered with this provider need no individual
 loading-overlay flags or request wrappers. Direct fetch calls outside TanStack
-Query, server-side retrieval, and the deployment event stream are not tracked.
+Query and server-side retrieval are not tracked.
 Browser catalogue requests have a 15-second transport deadline that releases
 loading feedback and permits a retry if the request stalls. The server's
 upstream product request has a separate 10-second deadline.
@@ -176,59 +176,4 @@ against the selected tokens in portrait, landscape, and short desktop viewports,
 with normal and enlarged root fonts. Unit-test measurements exercise application
 decisions but do not validate the browser's CSS layout.
 
-Automatic deployment updates live in `update/`. The provider uses native
-EventSource to receive the compiled version through one open connection to
-`/api/version`. Azure's current restart-based deployment closes old connections;
-the browser reconnects and receives the new server's version. Server-side comments
-every 25 seconds keep the connection active. There is no client-side version or
-document polling, additional dependency, Azure resource, or deployment hook.
-If a deployment HTTP error stops native reconnection, the updater reopens the
-failed stream after a short delay. Healthy streams stay open without new requests.
-It waits for idle interaction and completed queries and mutations, then atomically
-saves registered state, successful cached queries, scroll, and focus to per-tab
-session storage. Restored state remains available while its component has not yet
-mounted; a mounted store's current state takes precedence when saving again.
-A failed write cancels the reload. The next document restores models during
-hydration and scroll and focus after layout; user input stops deferred view
-restoration. Newer server-rendered query data takes precedence over older snapshots.
-Snapshots are URL-scoped, consumed once, and expire
-after 24 hours. A one-minute cooldown prevents rapid repeated reloads if another
-server still returns the previous build.
-
-`ApplicationProviders` installs `ApplicationUpdate` once for the whole app.
-Ordinary TanStack queries need no update-specific options or hooks: the built-in
-`IsRestoringProvider` pauses subscriptions while models and cached queries are
-restored, then each query resumes its normal freshness rules.
-
-Default restoration supports fixed-shape state described by its initial values.
-Nullable fields, dynamic records, heterogeneous arrays, and empty arrays that
-require element validation need an explicit restore callback. Defaults alone
-cannot describe those schemas or validate every JSON-compatible value.
-
-Use `useApplicationState("stable-component-key:v1", { field: initialValue })`
-from `application/application-state` for state with a fixed shape. It returns the
-typed state and Zustand's existing state setter, and registers the store with
-the application state context. Each mounted store needs a unique stable key.
-The default restore preserves new field defaults and restores compatible nested
-fields declared by the initial state.
-
-For other shapes, pass `useApplicationState(key, initialState, restore)`.
-The callback receives the saved snapshot as `unknown` and the initial state;
-validate the complete state and return the typed result, or return `undefined`
-to retain the defaults. Persist only JSON-compatible values, and version state
-and query keys when their structures change incompatibly.
-Keep layout-derived measurements in ordinary React state so the new document
-remeasures the current viewport.
-
-View restoration discovers controls and scroll regions from their existing
-semantic markup: names, labels, link destinations, button text, and IDs within
-landmarks and forms. No update-specific DOM attributes are required. Keep these
-identities stable across releases. Ambiguous matches are skipped rather than
-restoring focus or scroll to the wrong element. Never persist credentials or
-selected files.
-
-The updater cannot preserve arbitrary React internals or live browser resources;
-durable component state must use the application state hook. Existing clients must load this
-feature once before subsequent releases can update them. Deployments that leave
-old servers running require a shared broadcaster to notify their existing streams.
-The root README supplies the same behavior and limits to the static Technical details page.
+Reload an open browser tab after a deployment to load the latest app.
