@@ -63,6 +63,7 @@
  - When user is scrolling the page vertically, all parts except the page contents products list, stay in place (fixed) and are always visible. Only the products list can be scrolled vertically.
 
 # 10. Unit-tests are automatically generated and maintained as needed by codex, because it is instructed to do so by the AGENTS.md custom guideline rules. It does that automatically every time I am asking to implement or change something. This ensures that the unit-test coverage is always guaranteed to be close to 100%.
+- To run all unit-test, from project root dir run command: `npm --prefix Homework.Web.Tests test`
 
 # 11. There is a loading spinner and a half transparent full site overlay so a user is blocked from interacting with front-end while waiting for the remote/async actions to be completed. And it has a slow fade in when needs to be shown to reduce screen flashing, and fade out quickly, when is not needed anymore. And it is implemented in global way, so it automatically/implicitly applies to absolutely all remote calls.
 

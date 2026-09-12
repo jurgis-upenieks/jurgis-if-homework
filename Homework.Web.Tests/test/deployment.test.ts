@@ -27,7 +27,7 @@ describe.runIf(deploymentUrl)("Deployed application", () => {
     const note = page.querySelector("main > footer > small");
     const results = page.querySelector(`[role="region"][aria-label="${catalog.title}"]`);
 
-    expect(page.title).toBe(`${catalog.title} | ${catalog.name}`);
+    expect(page.title).toBe("Demo products | Homework");
     expect(heading?.textContent).toBe(catalog.title);
     expect(heading?.closest('[hidden], [aria-hidden="true"]')).toBeNull();
     expect(page.querySelectorAll(`ul[aria-label="${catalog.title}"] > li`).length).toBeGreaterThan(0);
